@@ -4,20 +4,29 @@
 # In[1]:
 
 
+# Funciones Generales de Analisis de datos
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
+# Funciones para graficas
+#import matplotlib.pyplot as plt
+import seaborn as sns
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+
+# Funciones estadisticas y matematicas
 from scipy.stats import norm
 import math
-from tqdm import tqdm  # Importa tqdm
 
+# Libreria Statsmodels
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing, ExponentialSmoothing
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from statsmodels.tsa.seasonal import MSTL
+
+# Libreria de Scikitlearn
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
 
 # Funciones de Calendario y Tiempo
 import holidays
@@ -26,11 +35,16 @@ from datetime import datetime
 from pandas.tseries.offsets import DateOffset
 from dateutil.relativedelta import relativedelta
 
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression
+# Barra de progreso
+from tqdm import tqdm 
+
+# Manejo de advertencias
 import warnings
-import seaborn as sns
+
+# Libreria de Streamlit para front-end
 import streamlit as st
+
+# Funcion para exportar a excel
 import io
 
 
@@ -50,7 +64,9 @@ def cargar_data(ruta):
 # In[3]:
 
 
+# Convierte los datos originales a una matriz vertical
 def convertir_a_df_vertical(df):
+    # Cambiar nombres de columnas
     df = df.rename(columns={'CÓDIGO': 'CODIGO', 'REFERENCIA':'CLIENTE'})
     columnas_fechas = df.columns[2:]    
     # Realizar el melt para transformar el DataFrame en formato largo
@@ -120,13 +136,16 @@ def eliminar_ceros_iniciales(df):
     
     for codigo in codigos_unicos:
         for cliente in clientes_unicos:
+            
             # Filtrar los datos para cada código y cliente
             df_codigo = df[(df['CODIGO'] == codigo) & (df['CLIENTE'] == cliente)]
 
             # Verificar si el DataFrame no está vacío
             if not df_codigo.empty:
+                
                 # Verificar si hay valores no cero en DEMANDA
                 if df_codigo['DEMANDA'].ne(0).any():
+                    
                     # Encontrar la primera fila donde la demanda no es cero
                     indice_primer_no_cero = df_codigo['DEMANDA'].ne(0).idxmax()
 
@@ -152,7 +171,8 @@ def eliminar_ceros_iniciales(df):
 
 
 def preprocesar_tabla_2(df_resultado):
-    # Crear columna CODIGO_CLIENTE
+    
+    # Crear columna CODIGO_CLIENTE concatenado ambas columnas
     df_resultado['CODIGO_CLIENTE'] = df_resultado['CODIGO'] + "_" + df_resultado['CLIENTE']
     
     # Seleccionar y copiar las columnas relevantes
@@ -167,6 +187,7 @@ def preprocesar_tabla_2(df_resultado):
 
 
 def graficar_demanda_codigo_cliente(df_mes_cliente):
+    
     # Obtener los códigos únicos
     codigos_unicos = df_mes_cliente['CODIGO'].unique()
     
@@ -187,6 +208,7 @@ def graficar_demanda_codigo_cliente(df_mes_cliente):
     
     # Asignar un color único para los otros clientes, si los hay
     clientes_unicos = df_mes_cliente['CLIENTE'].unique()
+    
     for i, cliente in enumerate(clientes_unicos):
         if cliente not in cliente_colores:
             # Asignar un color diferente para los otros clientes
@@ -222,16 +244,15 @@ def graficar_demanda_codigo_cliente(df_mes_cliente):
         font=dict(size=10),  # Tamaño de fuente general
         margin=dict(l=50, r=50, t=50, b=50),  # Ajustar márgenes
         template="ggplot2",
-#        xaxis=dict(tickformat="%Y-%m-%d"),  # Formato de la fecha
-#        xaxis_rangeslider_visible=False,  # Quitar el rango deslizante en el eje X
     )
-        # Ajustar los títulos de los subplots
+    # Ajustar los títulos de los subplots
     for annotation in fig['layout']['annotations']:
         annotation['font'] = dict(size=11)  # Reducir tamaño del texto de los títulos de subplots
         
-     # Ajustar los títulos de los subplots y ejes
+    # Ajustar los títulos de los subplots y ejes
     fig.update_xaxes(title_font=dict(size=9))  # Tamaño de fuente para los títulos del eje X
     fig.update_yaxes(title_font=dict(size=9))  # Tamaño de fuente para los títulos del eje Y
+    
     # Mostrar la figura
     fig.show()
 
@@ -289,6 +310,7 @@ def graficar_demanda_codigo(df_mes_orig):
     
     # Iterar sobre cada código para agregar subplots
     for i, codigo in enumerate(codigos_unicos, start=1):
+        
         # Filtrar los datos para el código actual
         df_codigo = df_mes_orig[df_mes_orig['CODIGO'] == codigo]
         
@@ -323,6 +345,7 @@ def graficar_demanda_codigo(df_mes_orig):
      # Ajustar los títulos de los subplots y ejes
     fig.update_xaxes(title_font=dict(size=9))  # Tamaño de fuente para los títulos del eje X
     fig.update_yaxes(title_font=dict(size=9))  # Tamaño de fuente para los títulos del eje Y
+    
     # Mostrar la figura
     fig.show()
 
@@ -331,9 +354,16 @@ def graficar_demanda_codigo(df_mes_orig):
 
 
 def preprocesar_demanda_cliente(df_mes_cliente):
+    
+    # Generar copia de trabajo
     df_mes_orig = df_mes_cliente.copy()
+
+    # Eliminar columnas codigo, cliente
     df_mes_orig = df_mes_orig.drop(columns=['CODIGO','CLIENTE'])
+
+    # Renombrar columna codigo como codigo_cliente
     df_mes_orig = df_mes_orig.rename(columns={'CODIGO_CLIENTE':'CODIGO'})
+    
     # Calcular el largo de cada serie de tiempo por CODIGO
     series_length = df_mes_orig.groupby('CODIGO').size()
     
@@ -355,8 +385,10 @@ def preprocesar_demanda_cliente(df_mes_cliente):
 # In[12]:
 
 
-opciones = ['POR_CODIGO_CLIENTE','POR_CODIGO_AGREGADO']
+# Selecciona si se quiere pronosticar por codigo consolidado (suministro) o por codigo_cliente
 def seleccionar_tipo_pronostico(opcion, df_mes_cliente):
+
+    # Conndicional para selecccionar tipo de pronostico
     if opcion == 'POR_CODIGO_CLIENTE':
         df_mes_orig, reporte_codigos = preprocesar_demanda_cliente(df_mes_cliente)
     elif opcion == 'POR_CODIGO_AGREGADO':
@@ -374,13 +406,12 @@ def reemplazar_ceros(df_mes_orig):
     
     # Generar copia de trabajo
     df_mes_ceros = df_mes_orig.copy()
-    # Reemplazar los valores de demanda iguales a 0 por la mediana correspondiente
-    # df_mes_ceros['DEMANDA'] = df_mes_orig.groupby('CODIGO')['DEMANDA'].transform(
-    #     lambda x: x.replace(0, x.median())
-    #     )
+
+    # Reemplaza los datos menores a 70 unidades (tambien considerados 0s) con la mediana de la serie de tiempo
     df_mes_ceros['DEMANDA'] = df_mes_orig.groupby('CODIGO')['DEMANDA'].transform(
         lambda x: x.where(x >= 70, x.median())
     )
+    
     return df_mes_ceros
 
 
@@ -443,6 +474,7 @@ def eliminar_outliers(df_mes_ceros, sup, inf, n):
     
     # Inicializar el DataFrame acumulado vacío
     df_acumulado = pd.DataFrame()
+    
     # Aplicar la función imputar_outliers a cada grupo (SKU)
     for sku, df_sku in df_mes_ceros.groupby('CODIGO'):
         # Asegurarse de que 'FECHA' sea el índice
@@ -452,27 +484,24 @@ def eliminar_outliers(df_mes_ceros, sup, inf, n):
         
         # Agregar el resultado al DataFrame acumulado
         df_acumulado = pd.concat([df_acumulado, df_imputado])
+
+    # Crear copia de trabajo
     df_outliers = df_acumulado.copy()
     df_acumulado = df_acumulado[['CODIGO',	
-                                 #'REFERENCIA', 
-                                 'NUEVA_DEM']]
+                               'NUEVA_DEM']]
     df_mes = df_acumulado.rename(columns={'NUEVA_DEM':'DEMANDA'})
+    
     # Mostrar el DataFrame acumulado
     reporte_outliers = df_outliers[df_outliers['IS_OUTLIER'] == True]
+    
     return df_mes, df_outliers, reporte_outliers
 
 
 # In[16]:
 
 
-#outliers = df_outliers[df_outliers['IS_OUTLIER'] == True]
-#outliers.to_excel('outliers.xlsx')
-
-
-# In[17]:
-
-
 def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
+    
     # Lista de SKUs únicos
     lista_skus = df_mes_ceros['CODIGO'].unique()
     
@@ -495,6 +524,7 @@ def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
     
     # Iterar por cada SKU
     for idx, sku in enumerate(lista_skus):
+        
         # Filtrar por SKU
         df_outliers = df_mes_ceros[df_mes_ceros['CODIGO'] == sku][['DEMANDA']].copy()
 
@@ -574,6 +604,7 @@ def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
         #width=900,  # Ancho fijo
         showlegend=False  # Ocultar leyenda global
     )
+    
     for annotation in fig['layout']['annotations']:
         annotation['font'] = dict(size=11)  # Reducir tamaño del texto de los títulos de subplots
         
@@ -585,7 +616,7 @@ def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
 
 # ## Funcion para crear la lista de sku's
 
-# In[18]:
+# In[17]:
 
 
 def crear_lista_skus(df_mes):
@@ -595,7 +626,7 @@ def crear_lista_skus(df_mes):
 
 # ## Funcion para calcular el numero de meses a evaluar por cada SKU
 
-# In[19]:
+# In[18]:
 
 
 def calcular_meses_a_evaluar(df_sku, periodo_max_evaluacion, porc_eval):
@@ -611,7 +642,7 @@ def calcular_meses_a_evaluar(df_sku, periodo_max_evaluacion, porc_eval):
 
 # ## Funcion para crear el rango de fechas para iterar
 
-# In[20]:
+# In[19]:
 
 
 def crear_rango_fechas(df_sku, meses_evaluar):
@@ -624,10 +655,6 @@ def crear_rango_fechas(df_sku, meses_evaluar):
   
     # Creamos un rango de fechas comenzando en inicio y terminando en ultina_fecha, con frecuencia mensual inicio MS
     rango_fechas = pd.date_range(start=inicio, end=ultima_fecha, freq='MS')
-   
-    #print(f'Los meses a evaluar son: {len(rango_fechas)}')
-    
-    #print(rango_fechas)
 
     return rango_fechas
 
@@ -636,7 +663,7 @@ def crear_rango_fechas(df_sku, meses_evaluar):
 
 # ### Función para crear columnas de error, error absoluto, error porcentual y error cuadrado
 
-# In[21]:
+# In[20]:
 
 
 def crear_columnas_error(df):
@@ -651,7 +678,7 @@ def crear_columnas_error(df):
 
 # ### Funcion para calcular las metricas totales dado un df con columnas de error
 
-# In[22]:
+# In[21]:
 
 
 def metricas_error(df, imprimir):
@@ -677,37 +704,27 @@ def metricas_error(df, imprimir):
     return sesgo_porc, mae_porc, rmse, score
 
 
-# ### Funcion para calcular metricas de error globales para un modelo
+# ### Funcion para evaluar el error por sku
 
-# def calcular_error_global(df):
-# 
-#     # Calcula las diferente metricas
-#     mae_global = df['ABS_ERROR'].sum()/df['DEMANDA'].sum()
-#     sesgo_global = df['ERROR'].sum()/df['DEMANDA'].sum()
-#     score_global = mae_global + abs(sesgo_global)
-#     rmse_global = np.sqrt((df['ERROR_CUADRADO']).sum() / df['ERROR'].size)
-#     
-#     # Muestra los resultados formateados
-#     print('MAE% global: {:.2%}'.format(mae_global))
-#     print('Sesgo% global: {:.2%}'.format(sesgo_global))
-#     print('Score global: {:.2%}'.format(score_global))
-#     print('RMSE global: {:.1f}'.format(rmse_global))
-# 
-#     return mae_global, sesgo_global, score_global, rmse_global
-
-# In[23]:
+# In[22]:
 
 
 def kpi_error_sku(df):
-    
+
+    # Definicion de fechas de testeo
     fecha_fin_testeo = df.index.max()
     fecha_inicio_testeo = df.index.min()
-       
+
+    # Crear columnas de error para cada pronostico generado
     df_test = crear_columnas_error(df)
+
+    # Imprimir informacion de los periodos evaluados
     print('Periodo de Evaluacion desde:')
     print(f"\033[1m{df_test.index.min().strftime('%Y-%m')} hasta {df_test.index.max().strftime('%Y-%m')}\033[0m") #\033[1m{}\033[0m muestra la linea en negrilla
-    #mae_global, sesgo_global, score_global, rmse_global=calcular_error_global(df_test)
+    
+    # Calcular metricas de error
     sesgo_porc, mae_porc, rmse, score = metricas_error(df_test, imprimir=1)
+    
     # Agrupar df por sku
     grupo_sku_error = df_test.groupby(['CODIGO'], observed=True).agg({
                                                             'DEMANDA': 'sum',
@@ -715,8 +732,11 @@ def kpi_error_sku(df):
                                                             'ABS_ERROR': 'sum',
                                                             'ERROR_CUADRADO': ['sum', 'count'],
                                                             }).reset_index()
+
+    # Renombrar columnas
     grupo_sku_error.columns = ['CODIGO', 'DEMANDA', 'ERROR', 'ABS_ERROR', 
                              'ERROR_CUADRADO_suma', 'ERROR_CUADRADO_cuenta']
+    
     # Calcular MAE% y Sesgo% de datos agregados por sku
     grupo_sku_error = calcular_error(grupo_sku_error)
     
@@ -739,16 +759,19 @@ def kpi_error_sku(df):
                                                             'ABS_ERROR': 'sum',
                                                             'ERROR_CUADRADO': ['sum', 'count'],
                                                             }).reset_index()
-    
+
+    # Renombrar columnas
     grupo_sku_lag_error.columns = ['CODIGO','LAG', 'DEMANDA', 'ERROR', 'ABS_ERROR', 
                              'ERROR_CUADRADO_suma', 'ERROR_CUADRADO_cuenta']
     
+    # Calcular MAE% y Sesgo% de datos agregados por lag
     grupo_sku_lag_error = calcular_error(grupo_sku_lag_error)
-    
+
+    # Calcular error rmse por lag
     rmse_sku_lag = grupo_sku_lag_error[['CODIGO','LAG','RMSE']]
     
-    # Agrupar por codigo y por Mes para almacenar RMSE
-    df_test['Mes'] = df_test.index.month
+    # Agrupar por codigo para almacenar RMSE
+    #df_test['Mes'] = df_test.index.month
     grupo_sku_mes_error = df_test.groupby(['CODIGO', 
                                            #'Mes'
                                           ], observed=True).agg({
@@ -757,13 +780,17 @@ def kpi_error_sku(df):
                                                             'ABS_ERROR': 'sum',
                                                             'ERROR_CUADRADO': ['sum', 'count'],
                                                             }).reset_index()
+    
+    # Renombrar columnas
     grupo_sku_mes_error.columns = ['CODIGO',
                                    #'Mes', 
                                    'DEMANDA', 'ERROR', 'ABS_ERROR', 
                              'ERROR_CUADRADO_suma', 'ERROR_CUADRADO_cuenta']
-    
+
+    # Calcular error rmse por codigo
     grupo_sku_mes_error = calcular_error(grupo_sku_mes_error)
-    
+
+    # Filtrar las columnas para mejor visualizacion
     rmse_sku_mes = grupo_sku_mes_error[['CODIGO',
                                         #'Mes',
                                         'RMSE']]
@@ -773,7 +800,7 @@ def kpi_error_sku(df):
 
 # ### Funcion para calcular metricas por una sola linea
 
-# In[24]:
+# In[23]:
 
 
 def calcular_error(df):
@@ -785,12 +812,13 @@ def calcular_error(df):
     return df
 
 
-# ### Funcion para calcular errores por LAG
+# ### Funcion para calcular errores por LAG para el promedio
 
-# In[25]:
+# In[24]:
 
 
 def evaluar_lags(df):
+    
     # Calcular los scores por lag
     df_lags = df.groupby('LAG')[['ERROR', 'ABS_ERROR', 'DEMANDA']].sum()
         
@@ -801,20 +829,23 @@ def evaluar_lags(df):
     return df_lags
 
 
-# In[26]:
+# In[25]:
 
 
 def kpi_error_lag(df):
-    
+
+    # Definir las fechas de testeo
     fecha_fin_testeo = df.index.max()
     fecha_inicio_testeo = df.index.min()
     
-      
+    # Crear columnas de error  
     df_test = crear_columnas_error(df)
     print('Periodo de Evaluacion desde:')   
     print(f"\033[1m{df_test.index.min().strftime('%Y-%m')} hasta {df_test.index.max().strftime('%Y-%m')}\033[0m") #\033[1m{}\033[0m muestra la linea en negrilla
-    #mae_global, sesgo_global, score_global, rmse_global=calcular_error_global(df_test)
+
+    # Calcular loas metricas de error
     sesgo_porc, mae_porc, rmse, score = metricas_error(df_test, imprimir=1)
+    
     # Agrupar df por mes
     grupo_mes_error = df_test.groupby(['LAG']).agg({
                                                             'DEMANDA': 'sum',
@@ -822,10 +853,14 @@ def kpi_error_lag(df):
                                                             'ABS_ERROR': 'sum',
                                                             'ERROR_CUADRADO': ['sum', 'count'],
                                                             }).reset_index()
+
+    # Renombrar columnas
     grupo_mes_error.columns = ['LAG', 'DEMANDA', 'ERROR', 'ABS_ERROR', 
                              'ERROR_CUADRADO_suma', 'ERROR_CUADRADO_cuenta']
+    
     # Calcular MAE% y Sesgo% de datos agregados por mes
     grupo_mes_error = calcular_error(grupo_mes_error)
+    
     # Aplicar formato porcentaje
     formatted_columns = grupo_mes_error[['MAE%', 'SESGO%', 'SCORE%']].map(lambda x: f'{x * 100:.2f}%')
     
@@ -842,17 +877,21 @@ def kpi_error_lag(df):
                                                             'ABS_ERROR': 'sum',
                                                             'ERROR_CUADRADO': ['sum', 'count'],
                                                             }).reset_index()
+
+    # Renombrar columnas
     grupo_sku_lag_error.columns = ['CODIGO', 'LAG', 'DEMANDA', 'ERROR', 'ABS_ERROR', 
                              'ERROR_CUADRADO_suma', 'ERROR_CUADRADO_cuenta']
-    
-    grupo_sku_lag_error = calcular_error(grupo_sku_lag_error)
-    rmse_sku_lag = grupo_sku_lag_error[['CODIGO', 'LAG','RMSE']]
 
+    # Calcular columnas de error por lag
+    grupo_sku_lag_error = calcular_error(grupo_sku_lag_error)
+
+    # Filtrar columnas para mejor visualizacion
+    rmse_sku_lag = grupo_sku_lag_error[['CODIGO', 'LAG','RMSE']]
     
     return grupo_mes_error_formato, df_test
 
 
-# In[27]:
+# In[26]:
 
 
 # Agrupar df por sku
@@ -865,7 +904,8 @@ def agrupar_por_codigo(df):
                                                                 }).reset_index()
     grupo_sku_error.columns = ['CODIGO', 'DEMANDA', 'ERROR', 'ABS_ERROR', 
                                  'ERROR_CUADRADO_suma', 'ERROR_CUADRADO_cuenta']
-        # Calcular MAE% y Sesgo% de datos agregados por sku
+    
+    # Calcular MAE% y Sesgo% de datos agregados por sku
     grupo_sku_error = calcular_error(grupo_sku_error)
     grupo_sku_error = grupo_sku_error[['CODIGO','MAE%',	'SESGO%',	'SCORE%',	'RMSE']]
     
@@ -900,7 +940,7 @@ def agrupar_por_codigo(df):
 
 # ### Funcion para construir pronostico final para el promedio movil simple
 
-# In[28]:
+# In[27]:
 
 
 def construir_pronostico_pms(df_mejor, df_mes, meses_a_pronosticar_produccion, nombre_modelo):
@@ -935,7 +975,7 @@ def construir_pronostico_pms(df_mejor, df_mes, meses_a_pronosticar_produccion, n
 
 # ### Funcion para adicionar nombre del modelo
 
-# In[29]:
+# In[28]:
 
 
 def adicionar_nombre_modelo_serie_tiempo(df, nombre_modelo):
@@ -964,7 +1004,7 @@ def adicionar_nombre_modelo_serie_tiempo(df, nombre_modelo):
 # * DataFrame df_forecast_pms: Datos de pronósticos seleccionados.
 # 
 
-# In[30]:
+# In[29]:
 
 
 def evaluar_y_generar_pms(df_mes, df_mes_ceros, lista_skus, 
@@ -1106,7 +1146,7 @@ def evaluar_y_generar_pms(df_mes, df_mes_ceros, lista_skus,
 
 # ## Suavizacion Exponencial Simple
 
-# In[31]:
+# In[30]:
 
 
 def encontrar_mejor_se(df_mes, df_mes_ceros, lista_skus, periodo_max_evaluacion, porc_eval, 
@@ -1227,7 +1267,7 @@ def encontrar_mejor_se(df_mes, df_mes_ceros, lista_skus, periodo_max_evaluacion,
 
 # ## Regresion lineal simple y estacional
 
-# In[32]:
+# In[31]:
 
 
 def aplicar_regresion_lineal_simple(lista_skus, df_mes, df_mes_ceros, 
@@ -1388,7 +1428,7 @@ def aplicar_regresion_lineal_simple(lista_skus, df_mes, df_mes_ceros,
 
 # ## MSTL con Regresion Polinomica y Mayor Peso a la Ultima Tendencia
 
-# In[33]:
+# In[32]:
 
 
 def aplicar_mstl(lista_skus, df_mes, df_mes_ceros, 
@@ -1533,6 +1573,14 @@ def aplicar_mstl(lista_skus, df_mes, df_mes_ceros,
 
 # # Comparacion de Modelos
 
+# ## Funciones para comparar y seleccionar mejores modelos por SKU
+
+# In[33]:
+
+
+### Funcion para crear df con mejores modelos
+
+
 # In[34]:
 
 
@@ -1587,6 +1635,8 @@ def comparar_y_graficar_modelos(reporte_error_skus):
     return df_minimos, df_final, reporte_error_skus, fig1, df_errores_totales
 
 
+# ### Funcion para generar df con con los errores de la evaluacion
+
 # In[35]:
 
 
@@ -1594,10 +1644,13 @@ def generar_reporte_error_skus(modelos):
     return {modelo: globals()[f'grupo_sku_error_formato_{modelo}'] for modelo in modelos}
 
 
+# ### Funcion para acumular todos los pronosticos generados, no solo los de menor error
+
 # In[36]:
 
 
 def concatenar_forecasts_pronosticos(modelos):
+    
     # Obtener los DataFrames dinámicamente usando la lista de modelos
     dfs = [globals()[f'df_forecast_final_{modelo}'] for modelo in modelos]
     
@@ -1609,6 +1662,8 @@ def concatenar_forecasts_pronosticos(modelos):
 
     return df_todos_pronosticos
 
+
+# ### Funcion para cnsolidar los RMSE de los modelos
 
 # In[37]:
 
@@ -1635,6 +1690,8 @@ def concatenar_rmse(modelos):
 
     return df_todos_rmse
 
+
+# ### Funcion para seleccionar el mejor modelo para cada sku
 
 # In[38]:
 
@@ -1694,118 +1751,9 @@ def obtener_mejor_pronostico(df_minimos, df_todos_pronosticos, df_errores_totale
     return df_pronosticos_mejor_modelo, df_pronosticos_12_meses
 
 
+# ### Funcion para crear la grafica de demanda + pronostico
+
 # In[39]:
-
-
-# def graficar_xyz(df_final, x, y):
-#     # Hacer una copia del DataFrame original para procesar los datos
-#     df_xyz = df_final.copy()
-
-#     # Limpiar los valores, eliminando el símbolo de porcentaje y convirtiendo a tipo float
-#     for col in ['pms', 
-#                 'se', 
-#                 'rl_lineal',
-#                 'rl_estacional',
-#                 'mstl',
-#                 #'xgb_local',
-#                 #'xgb_global', 
-#                 #'lgbm_local',
-#                 #'lgbm_global'
-#                ]:
-#         df_xyz[col] = df_xyz[col].str.rstrip('%').astype(float)
-    
-#     # Función para clasificar cada valor en X, Y o Z
-#     def classify_value(val, x, y):
-#         if 0 < val < x:
-#             return 'X'
-#         elif x <= val < y:
-#             return 'Y'
-#         else:
-#             return 'Z'
-
-#     # Diccionarios para almacenar los resultados de las clasificaciones
-#     classification_results = {}
-#     classification_results_percentages = {}
-
-#     # Clasificar y contar los valores para cada columna
-#     for col in ['pms', 
-#                 'se',
-#                 'rl_lineal',
-#                 'rl_estacional',
-#                 'mstl',
-#                 #'xgb_local',
-#                 #'xgb_global', 
-#                 #'lgbm_local', 
-#                 #'lgbm_global'
-#                ]:
-#         # Usar una función lambda para pasar x e y a classify_value
-#         classification = df_xyz[col].apply(lambda val: classify_value(val, x, y))
-#         classification_counts = classification.value_counts()
-#         total_count = len(classification)
-#         classification_percentages = round((classification_counts / total_count) * 100, 2)
-
-#         classification_results[col] = classification_counts
-#         classification_results_percentages[col] = classification_percentages
-
-#     # Convertir los resultados en DataFrames
-#     classification_df = pd.DataFrame(classification_results).fillna(0).astype(int).reindex(['X','Y','Z'])
-#     classification_percent_df = pd.DataFrame(classification_results_percentages).fillna(0).reindex(['X','Y','Z'])
-
-#     # Ordenar los datos por el porcentaje de la categoría 'X'
-#     sorted_data_percent = classification_percent_df.T.sort_values(by='X', ascending=False).reset_index()
-#     sorted_data_count = classification_df.T.sort_values(by='X', ascending=False).reset_index()
-
-#     # Fusionar datos de porcentajes y conteos
-#     sorted_data_combined = sorted_data_percent.melt(id_vars=['index'], value_vars=['X', 'Y', 'Z'], 
-#                                                     var_name='Clasificación', value_name='Porcentaje')
-#     sorted_data_combined['Conteo'] = sorted_data_count.melt(id_vars=['index'], value_vars=['X', 'Y', 'Z'], 
-#                                                            var_name='Clasificación', value_name='Conteo')['Conteo']
-
-#     # Renombrar la columna 'index' a 'Modelo'
-#     sorted_data_combined = sorted_data_combined.rename(columns={'index': 'Modelo'})
-
-#     # Definir la paleta de colores
-#     new_color_palette = {'X': 'navy', 'Y': 'lightblue', 'Z': '#7f7f7f'}
-
-#     # Crear el gráfico de barras apiladas
-#     fig = px.bar(
-#         sorted_data_combined,
-#         x='Modelo',
-#         y='Porcentaje',
-#         color='Clasificación',
-#         text=sorted_data_combined.apply(lambda row: f"{row['Conteo']} skus<br>{int(row['Porcentaje'])}%", axis=1),
-#         title='Porcentajes y Conteos por Modelo de Pronóstico',
-#         color_discrete_map=new_color_palette
-#     )
-
-#     # Ajustar el layout del gráfico para mejor visualización
-#     fig.update_layout(
-#         barmode='stack',
-#         template='ggplot2',
-#         title_x=0.5,
-#         yaxis_title='Porcentaje (%)',
-#         xaxis_title='Modelo de Pronóstico',
-#         legend_title='Clasificación',
-#         uniformtext_minsize=8,
-#         uniformtext_mode='hide',
-#     )
-
-#     # Ajustar el texto dentro de las barras
-#     fig.update_traces(textposition='inside', textfont_size=8)
-
-#     # Mostrar el gráfico
-#     fig.show()
-
-
-# In[40]:
-
-
-# x = 35
-# y = 70
-# graficar_xyz(df_final, x, y)
-
-
-# In[41]:
 
 
 def crear_grafica_pronostico(df_mes_ceros, df_todos_pronosticos, df_pronosticos_mejor_modelo):
@@ -1929,12 +1877,14 @@ def crear_grafica_pronostico(df_mes_ceros, df_todos_pronosticos, df_pronosticos_
     return fig
 
 
-# In[42]:
+# ### Funcion para seleccionar un pronostico diferente al minimo estadistico
+
+# In[40]:
 
 
 def validar_pronosticos(sku, modelo, df_todos_pronosticos):
-        # Filtrar DataFrame basado en selección
-    #df_todos_pronosticos['FORECAST'] = np.ceil(df_todos_pronosticos['FORECAST']).astype(int)    
+    
+    # Filtrar DataFrame basado en selección
     df_filtrado = df_todos_pronosticos[
                 (df_todos_pronosticos['CODIGO'] == sku) & 
                 (df_todos_pronosticos['MODELO'] == modelo)
@@ -1944,6 +1894,8 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 
 
 # # Script de prueba
+
+# Esta celda es para probar el algoritmo y realizar cambios o ajsutes posteriores a la entrega, debe permancer inactivada y no debe hacer parte del codigo ejecutable
 
 # # Cargar data
 # ruta_demanda = r'dataset/historico_venta 2022_2024.xlsx'
@@ -1963,6 +1915,7 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 # #graficar_demanda_codigo(df_mes_orig)
 # 
 # # Seleccionar tipo de Pronostico
+# opciones = ['POR_CODIGO_CLIENTE','POR_CODIGO_AGREGADO']
 # opcion = opciones[1]
 # df_mes_orig, reporte_codigos = seleccionar_tipo_pronostico(opcion, df_mes_cliente)
 # 
@@ -1990,11 +1943,14 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 # 
 # # Evaluar Modelos de Pronosticos de Serie de Tiempo
 # lista_skus = crear_lista_skus(df_mes) # Crear lista de skus
+# 
+# # Parametros
 # meses_a_pronosticar_evaluacion = 6 # Numero de meses a pronosticar para evaluar y seleccionar el modelo
 # periodo_max_evaluacion = 12 # Numero de periodos maximos de evaluacion de cada serie de tiempo
 # porc_eval = 0.35 # Porcentaje de meses para evaluar el modelo
 # barra_progreso = st.progress(0)
 # status_text = st.text("Iniciando Evaluación...")
+# 
 # # PMS
 # df_mejor_n, df_forecast_pms = evaluar_y_generar_pms(df_mes, df_mes_ceros, lista_skus, 
 #                                                     periodo_max_evaluacion, 
@@ -2034,6 +1990,8 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 #                                                               meses_a_pronosticar_produccion,
 #                                                               barra_progreso,
 #                                                                status_text)
+# 
+# # Adicionar nombre a los pronosticos de SE
 # df_forecast_final_se = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_se, 'se')
 # 
 # # Regresion lineal simple y "estacional"
@@ -2057,6 +2015,7 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 #                                     barra_progreso,
 #                                     status_text)
 # 
+# # Adicionar nombre a los pronosticos de RL
 # df_forecast_final_rl_lineal = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_lineal, 'rl_lineal')
 # df_forecast_final_rl_estacional = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_estacional, 'rl_estacional')
 # 
@@ -2079,16 +2038,19 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 #                                     peso_ult_data,
 #                                     barra_progreso,
 #                                     status_text)                      
-#                                                           
+# 
+# # Adicionar nombre a los pronosticos de MSTL                                                         
 # df_forecast_final_mstl = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_mstl, 'mstl')
 # 
 # # Crear reporte acumulado de errores de todos los modelos
 # modelos = ['pms', 'se', 'rl_lineal', 'rl_estacional', 'mstl']
 # reporte_error_skus = generar_reporte_error_skus(modelos)
 # df_todos_rmse = concatenar_rmse(modelos)
+# 
 # # Grafica 6: Distribucion de merjor modelos por sku
 # df_minimos, df_final, reporte_error_skus, fig1, df_errores_totales = comparar_y_graficar_modelos(reporte_error_skus)
 # fig1.show()
+# 
 # # Concatener todos los pronosticos finales generados
 # df_todos_pronosticos = concatenar_forecasts_pronosticos(modelos)
 # 
@@ -2101,7 +2063,7 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 
 # # Front end Streamlit
 
-# In[43]:
+# In[41]:
 
 
 # Configurar el layout de Streamlit
@@ -2110,8 +2072,10 @@ st.set_page_config(layout="wide")
 # Título de la aplicación
 st.title("Pronósticos de Series de Tiempo MILAGROS")
 
+# Barra lateral
 st.sidebar.title('Flujo de Datos')
 
+# Secciones
 seccion = st.sidebar.radio('⬇️ Ir a:', ('📂 Carga de datos',
                                        '📊 Demanda a pronosticar y outliers',
                                        '🔮 Evaluar y Generar Pronosticos', 
@@ -2205,7 +2169,7 @@ if seccion == '📊 Demanda a pronosticar y outliers':
         if 'opcion_seleccionada' not in st.session_state:
             st.session_state['opcion_seleccionada'] = opciones[0]  # Selección por defecto
 
-        # Display the selectbox and save the selected option in session_state
+        # Mostrar el menu desplegable y guardar la decision en session_state
         st.session_state['opcion_seleccionada'] = st.selectbox(
                 "Selecciona un modelo de pronóstico", 
                 opciones, 
@@ -2241,20 +2205,22 @@ if seccion == '📊 Demanda a pronosticar y outliers':
         st.success("Outliers Imputados correctamente.")
         
     if "df_mes" in st.session_state and "df_outliers" in st.session_state:
-                    
+
+        # Exportar a excel outliers
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             st.session_state.reporte_outliers.to_excel(writer, index=False, sheet_name='Outliers')
             
         excel_data = output.getvalue()
         
-        # Download Button for Excel
+        # Boton de descarga a excel
         st.download_button(
             label="📥 Descargar Outliers (Excel)",
             data=excel_data,
             file_name="df_outliers.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+        
         st.header("Generar Gráfica Manejo Ouliers")
         if st.button("Grafica Imputacion de Outliers"):
             graficar_outliers_subplots(st.session_state.df_mes_ceros, 
@@ -2264,16 +2230,16 @@ if seccion == '📊 Demanda a pronosticar y outliers':
                                        n=st.session_state.n)
 
 if seccion == '🔮 Evaluar y Generar Pronosticos':
-     # Check if forecasts have already been generated
+     # Chequear si los pronosticos ya han sido generados
     if st.session_state.df_pronosticos_12_meses is not None and st.session_state.fig is not None and st.session_state.df_todos_pronosticos is not None:
         st.success("Pronósticos ya generados previamente.")
-        # Button to regenerate forecasts
+        # Boton para regenerar pronosticos
         if st.button('Regenerar Pronósticos'):
-            # Clear previous forecasts and rerun section
+            # Limpiar los pronosticos previos y volver a correr script de la seccion
             st.session_state.df_pronosticos_12_meses = None
             st.session_state.fig = None
             st.session_state.df_todos_pronosticos = None
-            st.experimental_rerun()  # Re-run the script
+            st.experimental_rerun()  # Volver a correr el script
         else: 
             st.dataframe(st.session_state.df_pronosticos_12_meses)
             st.plotly_chart(st.session_state.fig)
@@ -2486,10 +2452,7 @@ if seccion == '🛠️ Herramientas de Análisis':
             st.write('Datos de pronostico para codigo y modelo seleccionado:')
             st.dataframe(df_filtrado)
 
-                        
-            
-# else:
-#         st.error("Datos no están disponibles. Asegúrese de haber cargado los datos correctamente.")
+ 
 
 
 # In[ ]:

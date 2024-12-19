@@ -254,8 +254,8 @@ def graficar_demanda_codigo_cliente(df_mes_cliente):
     fig.update_yaxes(title_font=dict(size=9))  # Tamaño de fuente para los títulos del eje Y
     
     # Mostrar la figura
-    fig.show()
-
+    #fig.show()
+    st.plotly_chart(fig, use_container_width=True)
 
 # ## Consolidar Demanda por Codigo
 
@@ -347,8 +347,8 @@ def graficar_demanda_codigo(df_mes_orig):
     fig.update_yaxes(title_font=dict(size=9))  # Tamaño de fuente para los títulos del eje Y
     
     # Mostrar la figura
-    fig.show()
-
+    #fig.show()
+    st.plotly_chart(fig, use_container_width=True)
 
 # In[11]:
 
@@ -609,8 +609,8 @@ def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
         annotation['font'] = dict(size=11)  # Reducir tamaño del texto de los títulos de subplots
         
     # Mostrar la figura
-    fig.show()
-
+    #fig.show()
+    st.plotly_chart(fig, use_container_width=True)
 
 # # Funciones generales de ayuda para procesar modelos
 

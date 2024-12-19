@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 # Funciones para graficas
-
+import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.graph_objects as go
 import plotly.express as px

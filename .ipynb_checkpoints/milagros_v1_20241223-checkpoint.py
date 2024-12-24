@@ -37,7 +37,7 @@ from dateutil.relativedelta import relativedelta
 
 # Barra de progreso
 from tqdm import tqdm 
-from IPython.display import clear_output # Complemento barra de progreso
+#from IPython.display import clear_output # Complemento barra de progreso
 
 # Manejo de advertencias
 import warnings
@@ -3273,7 +3273,7 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 
 # # Front end Streamlit
 
-# In[41]:
+# In[ ]:
 
 
 # Configurar el layout de Streamlit
@@ -3373,6 +3373,12 @@ if seccion == '📂 Carga de datos':
                 st.session_state.df_mes_orig = df_mes_orig
                 graficar_demanda_codigo(df_mes_orig)
 
+
+# ### Seccion 2
+
+# In[ ]:
+
+
 if seccion == '📊 Demanda a pronosticar y outliers':
       
     # Seleccionar tipo de pronóstico
@@ -3442,6 +3448,12 @@ if seccion == '📊 Demanda a pronosticar y outliers':
                                        sup=st.session_state.sup, 
                                        inf=st.session_state.inf, 
                                        n=st.session_state.n)
+
+
+# ### Seccion 3
+
+# In[ ]:
+
 
 if seccion == '🔮 Evaluar y Generar Pronosticos':
      # Chequear si los pronosticos ya han sido generados
@@ -3675,6 +3687,12 @@ if seccion == '🔮 Evaluar y Generar Pronosticos':
                 st.session_state.fig = fig
                 st.plotly_chart(fig)
 
+
+# ### Seccion 4
+
+# In[ ]:
+
+
 if seccion == '🛠️ Herramientas de Análisis':
                 
     # Sección de filtrado (solo se muestra si df_todos_pronosticos existe)
@@ -3700,6 +3718,12 @@ if seccion == '🛠️ Herramientas de Análisis':
             
             st.write('Datos de pronostico para codigo y modelo seleccionado:')
             st.dataframe(df_filtrado)
+
+
+# ### Seccion 5
+
+# In[41]:
+
 
 if seccion == '📦 Pronosticos Novaventa por Campaña': 
     tabs = st.tabs(['📂 Cargar datos Novaventa', 
@@ -4043,9 +4067,4 @@ if seccion == '📦 Pronosticos Novaventa por Campaña':
                 
                 st.write('Datos de pronostico para codigo y modelo seleccionado:')
                 st.dataframe(df_filtrado_nv)
-
-# In[ ]:
-
-
-
 

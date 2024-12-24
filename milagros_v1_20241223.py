@@ -37,7 +37,7 @@ from dateutil.relativedelta import relativedelta
 
 # Barra de progreso
 from tqdm import tqdm 
-from IPython.display import clear_output # Complemento barra de progreso
+#from IPython.display import clear_output # Complemento barra de progreso
 
 # Manejo de advertencias
 import warnings

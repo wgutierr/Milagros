@@ -3859,7 +3859,7 @@ if seccion == '📦 Pronosticos Novaventa por Campaña':
                 st.experimental_rerun()
         else:
             ruta_demanda_nv = st.file_uploader("Sube el archivo de demanda en formato Excel", type=['xlsx'])
-            if ruta_demanda is not None:        
+            if ruta_demanda_nv is not None:        
                 df_nv = cargar_data(ruta_demanda_nv)
                 st.success("Archivo histórico cargado correctamente.")
                 st.session_state.df_nv = df_nv

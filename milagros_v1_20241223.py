@@ -73,7 +73,7 @@ def cargar_data_nv(ruta):
 
 # # Preprocesar Datos Parte 1
 
-# In[98]:
+# In[3]:
 
 
 # Convierte los datos originales a una matriz vertical pronostico en meses
@@ -111,7 +111,7 @@ def llenar_nan(df_orig):
 
 # ## Mapear nombre de los meses
 
-# In[102]:
+# In[4]:
 
 
 # Mapear los nombres de las columnas a fechas en formato 'YYYY-MM-DD'
@@ -124,7 +124,7 @@ meses = {
 
 # ## Convertir Texto a Fecha
 
-# In[103]:
+# In[5]:
 
 
 # Para pronostico por meses
@@ -154,7 +154,7 @@ def convertir_texto_a_fecha(df_vertical, meses):
 
 # ## Eliminar Ceros iniciales en las Series de Tiempo
 
-# In[101]:
+# In[6]:
 
 
 def eliminar_ceros_iniciales(df):
@@ -616,7 +616,7 @@ def imputar_outliers(df_outliers, sup, inf, n):
     
 
 
-# In[106]:
+# In[15]:
 
 
 def eliminar_outliers(df_mes_ceros, sup, inf, n):
@@ -653,7 +653,7 @@ def eliminar_outliers(df_mes_ceros, sup, inf, n):
     return df_mes, df_outliers, reporte_outliers
 
 
-# In[113]:
+# In[16]:
 
 
 def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
@@ -805,7 +805,7 @@ def calcular_meses_a_evaluar(df_sku, periodo_max_evaluacion, porc_eval):
 
 # ## Funcion para crear el rango de fechas para iterar
 
-# In[115]:
+# In[19]:
 
 
 def crear_rango_fechas(df_sku, meses_evaluar):
@@ -878,7 +878,7 @@ def metricas_error(df, imprimir):
 
 # ### Funcion para evaluar el error por sku
 
-# In[119]:
+# In[22]:
 
 
 def kpi_error_sku(df):
@@ -996,7 +996,7 @@ def calcular_error(df):
 
 # ### Funcion para calcular errores por LAG para el promedio
 
-# In[79]:
+# In[24]:
 
 
 def evaluar_lags(df):
@@ -1015,7 +1015,7 @@ def evaluar_lags(df):
     return df_lags
 
 
-# In[121]:
+# In[25]:
 
 
 def kpi_error_lag(df):
@@ -1086,7 +1086,7 @@ def kpi_error_lag(df):
     return grupo_mes_error_formato, df_test
 
 
-# In[123]:
+# In[26]:
 
 
 # Agrupar df por sku
@@ -1201,7 +1201,7 @@ def construir_pronostico_pms_nv(df_mejor, df_mes, meses_a_pronosticar_produccion
 
 # ### Funcion para adicionar nombre del modelo
 
-# In[126]:
+# In[28]:
 
 
 def adicionar_nombre_modelo_serie_tiempo(df, nombre_modelo):
@@ -1235,7 +1235,7 @@ def adicionar_nombre_modelo_serie_tiempo(df, nombre_modelo):
 # * DataFrame df_forecast_pms: Datos de pronósticos seleccionados.
 # 
 
-# In[128]:
+# In[29]:
 
 
 # Para pronosticos por mes:
@@ -1766,7 +1766,7 @@ def encontrar_mejor_se_nv(df_mes, df_mes_ceros, lista_skus, periodo_max_evaluaci
 
 # ## Regresion lineal simple y estacional
 
-# In[132]:
+# In[31]:
 
 
 # Para pronosticos por mes
@@ -2082,7 +2082,7 @@ def aplicar_regresion_lineal_simple_nv(lista_skus, df_mes, df_mes_ceros,
 
 # ## MSTL con Regresion Polinomica y Mayor Peso a la Ultima Tendencia
 
-# In[135]:
+# In[32]:
 
 
 # Para pronosticos por meses
@@ -2346,7 +2346,7 @@ def aplicar_mstl_nv(lista_skus, df_mes, df_mes_ceros,
 
 # ### Funcion para generar df con con los errores de la evaluacion
 
-# In[34]:
+# In[33]:
 
 
 def generar_reporte_error_skus(modelos):
@@ -2358,7 +2358,7 @@ def generar_reporte_error_skus_nv(modelos_nv):
 
 # ### Funcion para crear df con mejores modelos
 
-# In[33]:
+# In[34]:
 
 
 # Para pronosticos por meses
@@ -2491,7 +2491,7 @@ def comparar_y_graficar_modelos_nv(reporte_error_skus):
 #     return df_todos_pronosticos
 # 
 
-# In[146]:
+# In[35]:
 
 
 def concatenar_forecasts_pronosticos(modelos):
@@ -2540,7 +2540,7 @@ def concatenar_forecasts_pronosticos_nv(modelos_nv):
 
 # ### Funcion para generar periodos futuros novaventa
 
-# In[138]:
+# In[36]:
 
 
 def generar_periodos_futuros(df_periodo, meses_a_pronosticar_produccion):
@@ -2576,7 +2576,7 @@ def generar_periodos_futuros(df_periodo, meses_a_pronosticar_produccion):
     return periodo_max, futuros
 
 
-# In[ ]:
+# In[37]:
 
 
 def agregar_fecha_a_grupo(df_todos_pronosticos, futuros):
@@ -2606,7 +2606,7 @@ def agregar_fecha_a_grupo(df_todos_pronosticos, futuros):
 
 # ### Funcion para consolidar los RMSE de los modelos
 
-# In[136]:
+# In[38]:
 
 
 def concatenar_rmse(modelos):
@@ -2679,7 +2679,7 @@ def concatenar_rmse_nv(modelos_nv):
 
 # ### Funcion para seleccionar el mejor modelo para cada sku
 
-# In[142]:
+# In[39]:
 
 
 def obtener_mejor_pronostico(df_minimos, df_todos_pronosticos, df_errores_totales, df_todos_rmse):
@@ -2758,7 +2758,7 @@ def obtener_mejor_pronostico_nv(df_minimos, df_todos_pronosticos_fecha):
 
 # ### Funcion para crear la grafica de demanda + pronostico
 
-# In[144]:
+# In[40]:
 
 
 def crear_grafica_pronostico(df_mes_ceros, df_todos_pronosticos, df_pronosticos_mejor_modelo):
@@ -3016,7 +3016,7 @@ def crear_grafica_pronostico_nv(df_mes, df_todos_pronosticos, df_pronosticos_mej
 
 # ### Funcion para seleccionar un pronostico diferente al minimo estadistico
 
-# In[39]:
+# In[41]:
 
 
 def validar_pronosticos(sku, modelo, df_todos_pronosticos):
@@ -3032,7 +3032,7 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 
 # ### Funcion para agrupar df_test y obtener metricas combinadas
 
-# In[61]:
+# In[42]:
 
 
 def concatenar_df_test(modelos):
@@ -3073,7 +3073,7 @@ def concatenar_df_test_nv(modelos_nv):
     return df_todos_df_test_nv
 
 
-# In[87]:
+# In[43]:
 
 
 def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
@@ -3098,7 +3098,7 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
     return df_resultado_test
 
 
-# # Script de prueba
+# # Script de prueba parte 1
 
 # Esta celda es para probar el algoritmo y realizar cambios o ajsutes posteriores a la entrega, debe permancer inactivada y no debe hacer parte del codigo ejecutable
 
@@ -3271,9 +3271,118 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 # df_lags = evaluar_lags(df_resultado_test)[['MAE%','SESGO%','SCORE%']]
 # display(df_lags[['MAE%','SESGO%','SCORE%']])
 
+# # Script de prueba parte 2 - Novaventa
+
+# # Ruta ubicacion de archivo fuente
+# ruta_demanda_nv = r'dataset/Historico_Campañas_Novaventa.xlsx'
+# df = cargar_data(ruta_demanda_nv)
+# df_orig = preprocesar_datos_1_nv(df)
+# df_vertical = llenar_nan(df_orig)
+# df_resultado = eliminar_ceros_iniciales_nv(df_vertical)
+# df_ceros = reemplazar_ceros_nv(df_resultado)
+# graficar_demanda_codigo_nv(df_resultado)
+# sup = 0.98
+# inf = 0.02
+# n = 6
+# df_periodo, df_outliers, reporte_outliers = eliminar_outliers(df_ceros, sup, inf, n)
+# graficar_outliers_subplots(df_ceros, df_outliers, sup, inf, n)
+# lista_skus = crear_lista_skus(df_periodo) # Crear lista de skus
+# meses_a_pronosticar_evaluacion = 6 # Numero de meses a pronosticar para evaluar y seleccionar el modelo
+# periodo_max_evaluacion = 12 # Numero de periodos maximos de evaluacion de cada serie de tiempo
+# porc_eval = 0.35 # Porcentaje de meses para evaluar el modelo
+# barra_progreso = st.progress(0)
+# status_text = st.text("Iniciando Evaluación...")
+# 
+# df_mejor_n, df_forecast_pms = evaluar_y_generar_pms_nv(df_periodo, df_ceros, lista_skus, 
+#                                                     periodo_max_evaluacion, 
+#                                                     porc_eval, 
+#                                                     meses_a_pronosticar_evaluacion,
+#                                                    barra_progreso,
+#                                                    status_text)
+# grupo_mes_error_formato_pms, df_test_pms = kpi_error_lag(df_forecast_pms) # Reporte global
+# grupo_sku_error_formato_pms, rmse_sku_lag_pms, rmse_sku_mes_pms = kpi_error_sku(df_forecast_pms) # Reporte por sku
+# 
+# # Generar Pronosticos finales con PMS
+# meses_a_pronosticar_produccion = 12 # Numero de meses finales a pronosticar
+# df_forecast_final_pms = construir_pronostico_pms_nv(df_mejor_n, df_periodo, meses_a_pronosticar_produccion, 'pms')
+# 
+# df_mejor_se,  df_forecast_se = encontrar_mejor_se_nv(df_periodo, df_ceros, lista_skus, periodo_max_evaluacion, porc_eval, 
+#                         meses_a_pronosticar_evaluacion,
+#                         barra_progreso,
+#                         status_text)
+# grupo_mes_error_formato_se, df_test_se = kpi_error_lag(df_forecast_se) # Reporte global
+# grupo_sku_error_formato_se, rmse_sku_lag_se, rmse_sku_mes_se = kpi_error_sku(df_forecast_se)
+# 
+# porc_eval_pronost = 0
+# meses_a_pronosticar_produccion = 12
+# df_mejor_se_final,  df_forecast_final_se = encontrar_mejor_se_nv(df_periodo, df_ceros, lista_skus, periodo_max_evaluacion, porc_eval_pronost, 
+#                         meses_a_pronosticar_produccion,
+#                         barra_progreso,
+#                         status_text)
+# # Adicionar nombre a los pronosticos de SE
+# df_forecast_final_se = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_se, 'se')
+# 
+# porc_eval = 0.35
+# df_mejor_rl_lineal, df_mejor_rl_estacional, df_forecast_rl_lineal, df_forecast_rl_estacional = aplicar_regresion_lineal_simple_nv(lista_skus, df_periodo, df_ceros, 
+#                                     periodo_max_evaluacion, porc_eval, 
+#                                     meses_a_pronosticar_evaluacion,
+#                                     barra_progreso,
+#                                     status_text)
+# 
+# grupo_mes_error_formato_rl_lineal, df_test_rl_lineal = kpi_error_lag(df_forecast_rl_lineal) # Reporte global
+# grupo_sku_error_formato_rl_lineal, rmse_sku_lag_rl_lineal, rmse_sku_mes_rl_lineal = kpi_error_sku(df_forecast_rl_lineal)
+# 
+# grupo_mes_error_formato_rl_estacional, df_test_rl_estacional = kpi_error_lag(df_forecast_rl_estacional) # Reporte global
+# grupo_sku_error_formato_rl_estacional, rmse_sku_lag_rl_estacional, rmse_sku_mes_rl_estacional = kpi_error_sku(df_forecast_rl_estacional)
+# 
+# 
+# df_final_mejor_rl_lineal, df_final_mejor_rl_estacional, df_forecast_final_rl_lineal, df_forecast_final_rl_estacional = aplicar_regresion_lineal_simple_nv(lista_skus, df_periodo, df_ceros, 
+#                                     periodo_max_evaluacion, porc_eval_pronost, 
+#                                     meses_a_pronosticar_produccion,
+#                                     barra_progreso,
+#                                     status_text)
+# 
+# # Adicionar nombre a los pronosticos de RL
+# df_forecast_final_rl_lineal = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_lineal, 'rl_lineal')
+# df_forecast_final_rl_estacional = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_estacional, 'rl_estacional')
+# 
+# # Modelo de descomposicion MSTL
+# peso_ult_data = 0.08
+# df_mejor_mstl, df_forecast_mstl = aplicar_mstl_nv(lista_skus, df_periodo, df_ceros, 
+#                                     periodo_max_evaluacion, porc_eval, 
+#                                     meses_a_pronosticar_evaluacion, peso_ult_data,
+#                                     barra_progreso,
+#                                     status_text)
+#  # Reportes de error MSTL
+# grupo_mes_error_formato_mstl, df_test_mstl = kpi_error_lag(df_forecast_mstl) # Reporte golbal
+# grupo_sku_error_formato_mstl, rmse_sku_lag_mstl, rmse_sku_mes_mstl = kpi_error_sku(df_forecast_mstl) # Reporte por sku
+# 
+# # Generar Pronosticos finales con MSTL
+# tabla_final_pronost, df_forecast_final_mstl = aplicar_mstl_nv(lista_skus, df_periodo, df_ceros, 
+#                                     periodo_max_evaluacion, porc_eval_pronost, 
+#                                     meses_a_pronosticar_produccion, 
+#                                     peso_ult_data,
+#                                     barra_progreso,
+#                                     status_text)                      
+# 
+# # Adicionar nombre a los pronosticos de MSTL                                                         
+# df_forecast_final_mstl = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_mstl, 'mstl')
+# modelos = ['pms', 'se', 'rl_lineal', 'rl_estacional', 'mstl']
+# reporte_error_skus = generar_reporte_error_skus(modelos)
+# df_todos_rmse = concatenar_rmse(modelos)
+# df_minimos, df_final, reporte_error_skus, fig1, df_errores_totales = comparar_y_graficar_modelos_nv(reporte_error_skus)
+# fig1.show()
+# n = 12
+# periodo_max, futuros = generar_periodos_futuros(df_periodo, n)
+# df_todos_pronosticos = concatenar_forecasts_pronosticos(modelos)
+# df_todos_pronosticos_fecha = agregar_fecha_a_grupo(df_todos_pronosticos, futuros)
+# df_pronosticos_mejor_modelo, df_pronosticos_12_meses = obtener_mejor_pronostico_nv(df_minimos, df_todos_pronosticos_fecha )
+# fig = crear_grafica_pronostico_nv(df_periodo, df_todos_pronosticos_fecha, df_pronosticos_mejor_modelo)
+# fig.show()
+
 # # Front end Streamlit
 
-# In[ ]:
+# In[46]:
 
 
 # Configurar el layout de Streamlit
@@ -3376,7 +3485,7 @@ if seccion == '📂 Carga de datos':
 
 # ### Seccion 2
 
-# In[ ]:
+# In[47]:
 
 
 if seccion == '📊 Demanda a pronosticar y outliers':
@@ -3452,7 +3561,7 @@ if seccion == '📊 Demanda a pronosticar y outliers':
 
 # ### Seccion 3
 
-# In[ ]:
+# In[48]:
 
 
 if seccion == '🔮 Evaluar y Generar Pronosticos':
@@ -3690,7 +3799,7 @@ if seccion == '🔮 Evaluar y Generar Pronosticos':
 
 # ### Seccion 4
 
-# In[ ]:
+# In[49]:
 
 
 if seccion == '🛠️ Herramientas de Análisis':
@@ -3722,7 +3831,7 @@ if seccion == '🛠️ Herramientas de Análisis':
 
 # ### Seccion 5
 
-# In[41]:
+# In[52]:
 
 
 if seccion == '📦 Pronosticos Novaventa por Campaña': 
@@ -3749,9 +3858,9 @@ if seccion == '📦 Pronosticos Novaventa por Campaña':
                     st.session_state[var] = None
                 st.experimental_rerun()
         else:
-            ruta_demanda = st.file_uploader("Sube el archivo de demanda en formato Excel", type=['xlsx'])
+            ruta_demanda_nv = st.file_uploader("Sube el archivo de demanda en formato Excel", type=['xlsx'])
             if ruta_demanda is not None:        
-                df_nv = cargar_data_nv(ruta_demanda)
+                df_nv = cargar_data(ruta_demanda_nv)
                 st.success("Archivo histórico cargado correctamente.")
                 st.session_state.df_nv = df_nv
                 st.write("Datos cargados:")
@@ -4067,4 +4176,10 @@ if seccion == '📦 Pronosticos Novaventa por Campaña':
                 
                 st.write('Datos de pronostico para codigo y modelo seleccionado:')
                 st.dataframe(df_filtrado_nv)
+
+
+# In[ ]:
+
+
+
 

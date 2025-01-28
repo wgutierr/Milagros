@@ -714,7 +714,7 @@ def eliminar_outliers(df_mes_ceros, sup, inf, n):
     return df_mes, df_outliers, reporte_outliers
 
 
-# In[64]:
+# In[16]:
 
 
 def graficar_outliers_subplots(df_mes_ceros, df_outliers, sup, inf, n):
@@ -3105,14 +3105,29 @@ def generar_reporte_error_skus_nv(modelos_nv):
 
 # ### Funcion para crear df con mejores modelos
 
-# In[48]:
+# In[ ]:
 
 
 # Para pronosticos por meses
 def comparar_y_graficar_modelos(reporte_error_skus, df_mes_ceros):
     # Crear el DataFrame base con la columna 'Codigo'
     #df_final = reporte_error_skus['pms'][['CODIGO']].copy()
-    df_final = pd.DataFrame({'CODIGO': df_mes_ceros['CODIGO'].unique(),'DESCRIPCION': df_mes_ceros['DESCRIPCION'].unique()})
+    #df_final = pd.DataFrame({'CODIGO': df_mes_ceros['CODIGO'].unique(),'DESCRIPCION': df_mes_ceros['DESCRIPCION'].unique()})
+    
+    # Crear una columna temporal con el código alfanumérico antes del guion bajo
+    df_mes_ceros['CODIGO_ALFA'] = df_mes_ceros['CODIGO'].str.split('_').str[0]
+    
+    # Crear un mapeo entre CODIGO_ALFA y DESCRIPCION
+    descripcion_mapping = df_mes_ceros.drop_duplicates(subset='CODIGO_ALFA').set_index('CODIGO_ALFA')['DESCRIPCION']
+    
+    # Crear el DataFrame final con valores únicos de CODIGO
+    df_final = df_mes_ceros[['CODIGO']].drop_duplicates().copy()
+    
+    # Asignar la descripción correspondiente a cada CODIGO usando el mapeo
+    df_final['DESCRIPCION'] = df_final['CODIGO'].str.split('_').str[0].map(descripcion_mapping)
+    
+        
+    
     # Iterar sobre los modelos para combinarlos en df_final
     for nombre_modelo, df in reporte_error_skus.items():
         df_final = df_final.merge(
@@ -3954,296 +3969,300 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 
 # Esta celda es para probar el algoritmo y realizar cambios o ajsutes posteriores a la entrega, debe permancer inactivada y no debe hacer parte del codigo ejecutable
 
-# inicio_tiempo = time.time()
-# ## Cargar data
-# ruta_demanda = r'dataset/historico_venta 2022_2024.xlsx'
-# df = cargar_data(ruta_demanda)
-# #df = df.iloc[:,:-1]
-# ## Preprocesar data
-# df_vertical = convertir_a_df_vertical(df)
-# df_vertical_fecha = convertir_texto_a_fecha(df_vertical, meses)
-# df_resultado = eliminar_ceros_iniciales(df_vertical_fecha)
-# df_mes_cliente_sin_filtro = preprocesar_tabla_2(df_resultado)
-# 
-# # Seleccionar Clientes
-# clientes = df_mes_cliente_sin_filtro['CLIENTE'].unique()
-# clientes_seleccionados = ['NOVAVENTA', 'DISTRIBUIDORES', 'FARMATODO', 'E-COMMERCE']
-# df_mes_cliente = df_mes_cliente_sin_filtro[df_mes_cliente_sin_filtro['CLIENTE'].isin(clientes_seleccionados)]
-# 
-# ## Grafica 1: Demanda por Codigo - Cliente
-# graficar_demanda_codigo_cliente(df_mes_cliente)
-# 
-# ## Grafica 2: Demanda por Codigo Agregado
-# #df_mes_orig, reporte_codigos = agrupar_demanda(df_mes_cliente)
-# #graficar_demanda_codigo(df_mes_orig)
-# 
-# ## Seleccionar tipo de Pronostico
-# opciones = ['POR CODIGO CLIENTE','POR CODIGO AGREGADO']
-# opcion = opciones[1]
-# df_mes_orig, reporte_codigos = seleccionar_tipo_pronostico(opcion, df_mes_cliente)
-# graficar_demanda_codigo(df_mes_orig)
-# ## Reemplazar los Ceros por la mediana
-# df_mes_ceros = reemplazar_ceros(df_mes_orig)
-# 
-# ## Grafica 3: Demanda con los ceros reemplazados
-# graficar_demanda_codigo(df_mes_ceros)
-# 
-# ## Definir limites sup e inf
-# sup = 0.98
-# inf = 0.02
-# 
-# ## Definir n para el pronostico ingenuo
-# n = 6
-# 
-# ## Imputar Outliers
-# df_mes, df_outliers, reporte_outliers = eliminar_outliers(df_mes_ceros, sup, inf, n)
-# 
-# ## Grafica 4: Demanda sin Outliers
-# graficar_demanda_codigo(df_mes)
-# 
-# ## Grafica 5: Visualizacion de outliers imputados
-# graficar_outliers_subplots(df_mes_ceros, df_outliers, sup=sup, inf=inf, n=n)
-# 
-# ## Evaluar Modelos de Pronosticos de Serie de Tiempo
-# lista_skus = crear_lista_skus(df_mes) # Crear lista de skus
-# 
-# ## Parametros
-# meses_a_pronosticar_evaluacion = 6 # Numero de meses a pronosticar para evaluar y seleccionar el modelo
-# periodo_max_evaluacion = 12 # Numero de periodos maximos de evaluacion de cada serie de tiempo
-# porc_eval = 0.35 # Porcentaje de meses para evaluar el modelo
-# barra_progreso = st.progress(0)
-# status_text = st.text("Iniciando Evaluación...")
-# 
-# ## PMS
-# df_mejor_n, df_forecast_pms = evaluar_y_generar_pms(df_mes, df_mes_ceros, lista_skus, 
-#                                                     periodo_max_evaluacion, 
-#                                                     porc_eval, 
-#                                                     meses_a_pronosticar_evaluacion,
-#                                                    barra_progreso,
-#                                                    status_text)
-# 
-# ## Reportes de error PMS
-# grupo_mes_error_formato_pms, df_test_pms = kpi_error_lag(df_forecast_pms) # Reporte global
-# grupo_sku_error_formato_pms, rmse_sku_lag_pms, rmse_sku_mes_pms = kpi_error_sku(df_forecast_pms) # Reporte por sku
-# 
-# ## Generar Pronosticos finales con PMS
-# meses_a_pronosticar_produccion = 12 # Numero de meses finales a pronosticar
-# df_forecast_final_pms = construir_pronostico_pms(df_mejor_n, df_mes, meses_a_pronosticar_produccion, 'pms', barra_progreso, status_text)
-# 
-# ## Suavizacion Exponencial
-# df_mejor_se,  df_forecast_se = encontrar_mejor_se(df_mes, 
-#                                                   df_mes_ceros, 
-#                                                   lista_skus, 
-#                                                   periodo_max_evaluacion, 
-#                                                   porc_eval, 
-#                                                   meses_a_pronosticar_evaluacion,
-#                                                   barra_progreso,
-#                                                     status_text)
-# 
-# ## Reportes de error SE
-# grupo_mes_error_formato_se, df_test_se = kpi_error_lag(df_forecast_se) # Reporte global
-# grupo_sku_error_formato_se, rmse_sku_lag_se, rmse_sku_mes_se = kpi_error_sku(df_forecast_se) # Reporte por sku
-# 
-# ## Generar Pronosticos finales con SE
-# porc_eval_pronost = 0 # Porcentaje de Evaluacion se lleva a 0 para pronosticar
-# df_mejor_se_final,  df_forecast_final_se = encontrar_mejor_se(df_mes, df_mes_ceros, 
-#                                                               lista_skus, 
-#                                                               periodo_max_evaluacion, 
-#                                                               porc_eval_pronost, 
-#                                                               meses_a_pronosticar_produccion,
-#                                                               barra_progreso,
-#                                                                status_text)
-# 
-# ## Adicionar nombre a los pronosticos de SE
-# df_forecast_final_se = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_se, 'se')
-# 
-# ## Regresion lineal simple y "estacional"
-# df_mejor_rl_lineal, df_mejor_rl_estacional, df_forecast_rl_lineal, df_forecast_rl_estacional = aplicar_regresion_lineal_simple(lista_skus, df_mes, df_mes_ceros, 
-#                                     periodo_max_evaluacion, porc_eval, 
-#                                     meses_a_pronosticar_evaluacion,
-#                                     barra_progreso,
-#                                     status_text)
-#                                                                                                                               
-# 
-# ## Reportes error RL
-# grupo_mes_error_formato_rl_lineal, df_test_rl_lineal= kpi_error_lag(df_forecast_rl_lineal) # Reporte global RL simple
-# grupo_sku_error_formato_rl_lineal, rmse_sku_lag_rl_lineal, rmse_sku_mes_rl_lineal = kpi_error_sku(df_forecast_rl_lineal) # Reporte por sku RL simple
-# grupo_mes_error_formato_rl_estacional, df_test_rl_estacional= kpi_error_lag(df_forecast_rl_estacional) # Reporte global RL estacional
-# grupo_sku_error_formato_rl_estacional, rmse_sku_lag_rl_estacional, rmse_sku_mes_rl_estacional = kpi_error_sku(df_forecast_rl_estacional) # Reporte por sku RL estacional
-# 
-# ## Generar Pronosticos finales con RL 
-# df_final_mejor_rl_lineal, df_final_mejor_rl_estacional, df_forecast_final_rl_lineal, df_forecast_final_rl_estacional = aplicar_regresion_lineal_simple(lista_skus, df_mes, df_mes_ceros, 
-#                                     periodo_max_evaluacion, porc_eval_pronost, 
-#                                     meses_a_pronosticar_produccion,
-#                                     barra_progreso,
-#                                     status_text)
-# 
-# ## Adicionar nombre a los pronosticos de RL
-# df_forecast_final_rl_lineal = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_lineal, 'rl_lineal')
-# df_forecast_final_rl_estacional = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_estacional, 'rl_estacional')
-# 
-# ## Modelo de descomposicion MSTL
-# porc_eval = 0.35
-# peso_ult_data = 0.08
-# df_mejor_mstl, df_forecast_mstl = aplicar_mstl(lista_skus, df_mes, df_mes_ceros, 
-#                                     periodo_max_evaluacion, porc_eval, 
-#                                     meses_a_pronosticar_evaluacion, peso_ult_data,
-#                                     barra_progreso,
-#                                     status_text)
-# ## Reportes de error MSTL
-# grupo_mes_error_formato_mstl, df_test_mstl = kpi_error_lag(df_forecast_mstl) # Reporte golbal
-# grupo_sku_error_formato_mstl, rmse_sku_lag_mstl, rmse_sku_mes_mstl = kpi_error_sku(df_forecast_mstl) # Reporte por sku
-# 
-# ## Generar Pronosticos finales con MSTL
-# tabla_final_pronost, df_forecast_final_mstl = aplicar_mstl(lista_skus, df_mes, df_mes_ceros, 
-#                                     periodo_max_evaluacion, porc_eval_pronost, 
-#                                     meses_a_pronosticar_produccion, 
-#                                     peso_ult_data,
-#                                     barra_progreso,
-#                                     status_text)                      
-# 
-# ## Adicionar nombre a los pronosticos de MSTL                                                         
-# df_forecast_final_mstl = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_mstl, 'mstl')
-# 
-# # Modelo Milagros
-# df_forecast_milagros = aplicar_milagros(lista_skus, df_mes, df_mes_ceros, 
-#                                     periodo_max_evaluacion, porc_eval, 
-#                                     meses_a_pronosticar_evaluacion, 
-#                                     barra_progreso,
-#                                     status_text)
-# 
-# df_forecast_milagros = crear_columnas_error(df_forecast_milagros)
-# df_mejor_milagros = agrupar_por_codigo(df_forecast_milagros)
-# 
-# grupo_mes_error_formato_milagros, df_test_milagros = kpi_error_lag(df_forecast_milagros)
-# grupo_sku_error_formato_milagros, rmse_sku_lag_milagros, rmse_sku_mes_milagros = kpi_error_sku(df_forecast_milagros)
-# 
-# ## Generar pronostico Modelo Milagros
-# 
-# porc_eval = 0
-# df_forecast_final_milagros = aplicar_milagros(lista_skus, df_mes, df_mes_ceros, 
-#                                     periodo_max_evaluacion, porc_eval, 
-#                                     meses_a_pronosticar_produccion, 
-#                                     barra_progreso,
-#                                     status_text)
-# 
-# df_forecast_final_milagros = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_milagros, 'milagros')
-# """
-# ## XGBoost
-# 
-# meses_atras_fin = 5
-# window_size = 5
-# porc_eval = 0.35
-# df_forecast_xgboost_global_raw = simular_xgboost_global(periodo_max_evaluacion, 
-#                            porc_eval, 
-#                            meses_atras_fin, 
-#                            meses_a_pronosticar_evaluacion,
-#                            window_size,                        
-#                            df_mes, barra_progreso,
-#                            status_text)
-# 
-# df_forecast_xgboost_global = formato_pronosticos_globales(df_forecast_xgboost_global_raw, df_mes_ceros, pronostico_final=0)
-# df_forecast_xgboost_global = crear_columnas_error(df_forecast_xgboost_global)
-# df_mejor_xgboost_global = agrupar_por_codigo(df_forecast_xgboost_global)
-# 
-# ## Reportes de error XGBoost Global
-# grupo_mes_error_formato_xgboost_global, df_test_xgboost_global = kpi_error_lag(df_forecast_xgboost_global)
-# grupo_sku_error_formato_xgboost_global, rmse_sku_lag_xgboost_global, rmse_sku_mes_xgboost_global = kpi_error_sku(df_forecast_xgboost_global)
-# 
-# ## Generar Pronosticos finales con XGBoost
-# periodo_max_evaluacion_xgboost = 2
-# meses_atras_fin = 1
-# window_size = 5
-# 
-# df_forecast_final_xgboost_global = simular_xgboost_global(periodo_max_evaluacion_xgboost, 
-#                            porc_eval, 
-#                            meses_atras_fin, 
-#                            meses_a_pronosticar_produccion,
-#                            window_size,                        
-#                            df_mes, barra_progreso,
-#                            status_text)
-# 
-# df_forecast_final_xgboost_global = formato_pronosticos_globales(df_forecast_final_xgboost_global, df_mes_ceros, pronostico_final=1)
-# df_forecast_final_xgboost_global = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_xgboost_global, 'xgboost_global')
-# 
-# 
-# ## LightGBM
-# meses_atras_fin = 5
-# window_size = 5
-# porc_eval = 0.35
-# df_forecast_lgbm_global_raw = simular_lgbm_global(periodo_max_evaluacion, 
-#                            porc_eval, 
-#                            meses_atras_fin, 
-#                            meses_a_pronosticar_evaluacion,
-#                            window_size,                        
-#                            df_mes,
-#                            barra_progreso,
-#                            status_text)
-# 
-# df_forecast_lgbm_global = formato_pronosticos_globales(df_forecast_lgbm_global_raw, df_mes_ceros, pronostico_final=0)
-# df_forecast_lgbm_global = crear_columnas_error(df_forecast_lgbm_global)
-# df_mejor_lgbm_global = agrupar_por_codigo(df_forecast_lgbm_global)
-# 
-# ## Reportes de error lgbm Global
-# grupo_mes_error_formato_lgbm_global, df_test_lgbm_global = kpi_error_lag(df_forecast_lgbm_global)
-# grupo_sku_error_formato_lgbm_global, rmse_sku_lag_lgbm_global, rmse_sku_mes_lgbm_global = kpi_error_sku(df_forecast_lgbm_global)
-# 
-# ## Generar Pronosticos finales con lgbm
-# periodo_max_evaluacion = 2
-# meses_atras_fin = 1
-# window_size = 5
-# 
-# df_forecast_final_lgbm_global = simular_lgbm_global(periodo_max_evaluacion, 
-#                            porc_eval, 
-#                            meses_atras_fin, 
-#                            meses_a_pronosticar_produccion,
-#                            window_size,                        
-#                            df_mes,barra_progreso,
-#                            status_text)
-# 
-# df_forecast_final_lgbm_global = formato_pronosticos_globales(df_forecast_final_lgbm_global, df_mes_ceros, pronostico_final=1)
-# df_forecast_final_lgbm_global = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_lgbm_global, 'lgbm_global')
-# 
-# """
-# 
-# 
-# ## Crear reporte acumulado de errores de todos los modelos
-# modelos = ['pms', 'se', 'rl_lineal', 'rl_estacional', 'mstl', 'milagros',
-#            #'xgboost_global',
-#           #'lgbm_global'
-#           ]
-# reporte_error_skus = generar_reporte_error_skus(modelos)
-# df_todos_rmse = concatenar_rmse(modelos)
-# 
-# ## Grafica 6: Distribucion de merjor modelos por sku
-# df_minimos, df_final, reporte_error_skus, fig1, df_errores_totales = comparar_y_graficar_modelos(reporte_error_skus, df_mes_ceros)
-# fig1.show()
-# 
-# ## Concatener todos los pronosticos finales generados
-# df_todos_pronosticos = concatenar_forecasts_pronosticos(modelos)
-# 
-# ## Crear tabla final con pronosticos a 12 meses
-# df_pronosticos_mejor_modelo, df_pronosticos_12_meses = obtener_mejor_pronostico(df_minimos, df_todos_pronosticos, df_errores_totales, df_todos_rmse)
-# 
-# ## Grafica final demanda vs mejor pronostico
-# fig = crear_grafica_pronostico(df_mes_ceros, df_todos_pronosticos, df_pronosticos_mejor_modelo)
-# fig.show()
-# 
-# df_todos_df_test = concatenar_df_test(modelos)
-# 
-# df_resultado_test = filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test)
-# sesgo_porc, mae_porc, rmse, score = metricas_error(df_resultado_test, imprimir=1)
-# df_lags = evaluar_lags(df_resultado_test)[['MAE%','SESGO%','SCORE%']]
-# display(df_lags[['MAE%','SESGO%','SCORE%']])
-# 
-# # Medicion de tiempo de ejeucion
-# fin_tiempo = time.time()
-# tiempo_ejecucion = round(fin_tiempo - inicio_tiempo, 2)
-# tiempo_ejecucion_min = tiempo_ejecucion / 60
-# minutos, segundos = divmod(tiempo_ejecucion_min, 1)
-# segundos *= 60
-# 
-# print("Tiempo de Ejecución:", "%02d:%02d" % (minutos, segundos))
+# In[ ]:
+
+
+inicio_tiempo = time.time()
+## Cargar data
+ruta_demanda = r'dataset/historico_venta 2022_2024.xlsx'
+df = cargar_data(ruta_demanda)
+#df = df.iloc[:,:-1]
+## Preprocesar data
+df_vertical = convertir_a_df_vertical(df)
+df_vertical_fecha = convertir_texto_a_fecha(df_vertical, meses)
+df_resultado = eliminar_ceros_iniciales(df_vertical_fecha)
+df_mes_cliente_sin_filtro = preprocesar_tabla_2(df_resultado)
+
+# Seleccionar Clientes
+clientes = df_mes_cliente_sin_filtro['CLIENTE'].unique()
+clientes_seleccionados = ['NOVAVENTA', 'DISTRIBUIDORES', 'FARMATODO', 'E-COMMERCE']
+df_mes_cliente = df_mes_cliente_sin_filtro[df_mes_cliente_sin_filtro['CLIENTE'].isin(clientes_seleccionados)]
+
+## Grafica 1: Demanda por Codigo - Cliente
+graficar_demanda_codigo_cliente(df_mes_cliente)
+
+## Grafica 2: Demanda por Codigo Agregado
+#df_mes_orig, reporte_codigos = agrupar_demanda(df_mes_cliente)
+#graficar_demanda_codigo(df_mes_orig)
+
+## Seleccionar tipo de Pronostico
+opciones = ['POR CODIGO CLIENTE','POR CODIGO AGREGADO']
+opcion = opciones[1]
+df_mes_orig, reporte_codigos = seleccionar_tipo_pronostico(opcion, df_mes_cliente)
+graficar_demanda_codigo(df_mes_orig)
+## Reemplazar los Ceros por la mediana
+df_mes_ceros = reemplazar_ceros(df_mes_orig)
+
+## Grafica 3: Demanda con los ceros reemplazados
+graficar_demanda_codigo(df_mes_ceros)
+
+## Definir limites sup e inf
+sup = 0.98
+inf = 0.02
+
+## Definir n para el pronostico ingenuo
+n = 6
+
+## Imputar Outliers
+df_mes, df_outliers, reporte_outliers = eliminar_outliers(df_mes_ceros, sup, inf, n)
+
+## Grafica 4: Demanda sin Outliers
+graficar_demanda_codigo(df_mes)
+
+## Grafica 5: Visualizacion de outliers imputados
+graficar_outliers_subplots(df_mes_ceros, df_outliers, sup=sup, inf=inf, n=n)
+
+## Evaluar Modelos de Pronosticos de Serie de Tiempo
+lista_skus = crear_lista_skus(df_mes) # Crear lista de skus
+
+## Parametros
+meses_a_pronosticar_evaluacion = 6 # Numero de meses a pronosticar para evaluar y seleccionar el modelo
+periodo_max_evaluacion = 12 # Numero de periodos maximos de evaluacion de cada serie de tiempo
+porc_eval = 0.35 # Porcentaje de meses para evaluar el modelo
+barra_progreso = st.progress(0)
+status_text = st.text("Iniciando Evaluación...")
+
+## PMS
+df_mejor_n, df_forecast_pms = evaluar_y_generar_pms(df_mes, df_mes_ceros, lista_skus, 
+                                                    periodo_max_evaluacion, 
+                                                    porc_eval, 
+                                                    meses_a_pronosticar_evaluacion,
+                                                   barra_progreso,
+                                                   status_text)
+
+## Reportes de error PMS
+grupo_mes_error_formato_pms, df_test_pms = kpi_error_lag(df_forecast_pms) # Reporte global
+grupo_sku_error_formato_pms, rmse_sku_lag_pms, rmse_sku_mes_pms = kpi_error_sku(df_forecast_pms) # Reporte por sku
+
+## Generar Pronosticos finales con PMS
+meses_a_pronosticar_produccion = 12 # Numero de meses finales a pronosticar
+df_forecast_final_pms = construir_pronostico_pms(df_mejor_n, df_mes, meses_a_pronosticar_produccion, 'pms', barra_progreso, status_text)
+
+## Suavizacion Exponencial
+df_mejor_se,  df_forecast_se = encontrar_mejor_se(df_mes, 
+                                                  df_mes_ceros, 
+                                                  lista_skus, 
+                                                  periodo_max_evaluacion, 
+                                                  porc_eval, 
+                                                  meses_a_pronosticar_evaluacion,
+                                                  barra_progreso,
+                                                    status_text)
+
+## Reportes de error SE
+grupo_mes_error_formato_se, df_test_se = kpi_error_lag(df_forecast_se) # Reporte global
+grupo_sku_error_formato_se, rmse_sku_lag_se, rmse_sku_mes_se = kpi_error_sku(df_forecast_se) # Reporte por sku
+
+## Generar Pronosticos finales con SE
+porc_eval_pronost = 0 # Porcentaje de Evaluacion se lleva a 0 para pronosticar
+df_mejor_se_final,  df_forecast_final_se = encontrar_mejor_se(df_mes, df_mes_ceros, 
+                                                              lista_skus, 
+                                                              periodo_max_evaluacion, 
+                                                              porc_eval_pronost, 
+                                                              meses_a_pronosticar_produccion,
+                                                              barra_progreso,
+                                                               status_text)
+
+## Adicionar nombre a los pronosticos de SE
+df_forecast_final_se = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_se, 'se')
+
+## Regresion lineal simple y "estacional"
+df_mejor_rl_lineal, df_mejor_rl_estacional, df_forecast_rl_lineal, df_forecast_rl_estacional = aplicar_regresion_lineal_simple(lista_skus, df_mes, df_mes_ceros, 
+                                    periodo_max_evaluacion, porc_eval, 
+                                    meses_a_pronosticar_evaluacion,
+                                    barra_progreso,
+                                    status_text)
+                                                                                                                              
+
+## Reportes error RL
+grupo_mes_error_formato_rl_lineal, df_test_rl_lineal= kpi_error_lag(df_forecast_rl_lineal) # Reporte global RL simple
+grupo_sku_error_formato_rl_lineal, rmse_sku_lag_rl_lineal, rmse_sku_mes_rl_lineal = kpi_error_sku(df_forecast_rl_lineal) # Reporte por sku RL simple
+grupo_mes_error_formato_rl_estacional, df_test_rl_estacional= kpi_error_lag(df_forecast_rl_estacional) # Reporte global RL estacional
+grupo_sku_error_formato_rl_estacional, rmse_sku_lag_rl_estacional, rmse_sku_mes_rl_estacional = kpi_error_sku(df_forecast_rl_estacional) # Reporte por sku RL estacional
+
+## Generar Pronosticos finales con RL 
+df_final_mejor_rl_lineal, df_final_mejor_rl_estacional, df_forecast_final_rl_lineal, df_forecast_final_rl_estacional = aplicar_regresion_lineal_simple(lista_skus, df_mes, df_mes_ceros, 
+                                    periodo_max_evaluacion, porc_eval_pronost, 
+                                    meses_a_pronosticar_produccion,
+                                    barra_progreso,
+                                    status_text)
+
+## Adicionar nombre a los pronosticos de RL
+df_forecast_final_rl_lineal = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_lineal, 'rl_lineal')
+df_forecast_final_rl_estacional = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_rl_estacional, 'rl_estacional')
+
+## Modelo de descomposicion MSTL
+porc_eval = 0.35
+peso_ult_data = 0.08
+df_mejor_mstl, df_forecast_mstl = aplicar_mstl(lista_skus, df_mes, df_mes_ceros, 
+                                    periodo_max_evaluacion, porc_eval, 
+                                    meses_a_pronosticar_evaluacion, peso_ult_data,
+                                    barra_progreso,
+                                    status_text)
+## Reportes de error MSTL
+grupo_mes_error_formato_mstl, df_test_mstl = kpi_error_lag(df_forecast_mstl) # Reporte golbal
+grupo_sku_error_formato_mstl, rmse_sku_lag_mstl, rmse_sku_mes_mstl = kpi_error_sku(df_forecast_mstl) # Reporte por sku
+
+## Generar Pronosticos finales con MSTL
+tabla_final_pronost, df_forecast_final_mstl = aplicar_mstl(lista_skus, df_mes, df_mes_ceros, 
+                                    periodo_max_evaluacion, porc_eval_pronost, 
+                                    meses_a_pronosticar_produccion, 
+                                    peso_ult_data,
+                                    barra_progreso,
+                                    status_text)                      
+
+## Adicionar nombre a los pronosticos de MSTL                                                         
+df_forecast_final_mstl = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_mstl, 'mstl')
+
+# Modelo Milagros
+df_forecast_milagros = aplicar_milagros(lista_skus, df_mes, df_mes_ceros, 
+                                    periodo_max_evaluacion, porc_eval, 
+                                    meses_a_pronosticar_evaluacion, 
+                                    barra_progreso,
+                                    status_text)
+
+df_forecast_milagros = crear_columnas_error(df_forecast_milagros)
+df_mejor_milagros = agrupar_por_codigo(df_forecast_milagros)
+
+grupo_mes_error_formato_milagros, df_test_milagros = kpi_error_lag(df_forecast_milagros)
+grupo_sku_error_formato_milagros, rmse_sku_lag_milagros, rmse_sku_mes_milagros = kpi_error_sku(df_forecast_milagros)
+
+## Generar pronostico Modelo Milagros
+
+porc_eval = 0
+df_forecast_final_milagros = aplicar_milagros(lista_skus, df_mes, df_mes_ceros, 
+                                    periodo_max_evaluacion, porc_eval, 
+                                    meses_a_pronosticar_produccion, 
+                                    barra_progreso,
+                                    status_text)
+
+df_forecast_final_milagros = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_milagros, 'milagros')
+"""
+## XGBoost
+
+meses_atras_fin = 5
+window_size = 5
+porc_eval = 0.35
+df_forecast_xgboost_global_raw = simular_xgboost_global(periodo_max_evaluacion, 
+                           porc_eval, 
+                           meses_atras_fin, 
+                           meses_a_pronosticar_evaluacion,
+                           window_size,                        
+                           df_mes, barra_progreso,
+                           status_text)
+
+df_forecast_xgboost_global = formato_pronosticos_globales(df_forecast_xgboost_global_raw, df_mes_ceros, pronostico_final=0)
+df_forecast_xgboost_global = crear_columnas_error(df_forecast_xgboost_global)
+df_mejor_xgboost_global = agrupar_por_codigo(df_forecast_xgboost_global)
+
+## Reportes de error XGBoost Global
+grupo_mes_error_formato_xgboost_global, df_test_xgboost_global = kpi_error_lag(df_forecast_xgboost_global)
+grupo_sku_error_formato_xgboost_global, rmse_sku_lag_xgboost_global, rmse_sku_mes_xgboost_global = kpi_error_sku(df_forecast_xgboost_global)
+
+## Generar Pronosticos finales con XGBoost
+periodo_max_evaluacion_xgboost = 2
+meses_atras_fin = 1
+window_size = 5
+
+df_forecast_final_xgboost_global = simular_xgboost_global(periodo_max_evaluacion_xgboost, 
+                           porc_eval, 
+                           meses_atras_fin, 
+                           meses_a_pronosticar_produccion,
+                           window_size,                        
+                           df_mes, barra_progreso,
+                           status_text)
+
+df_forecast_final_xgboost_global = formato_pronosticos_globales(df_forecast_final_xgboost_global, df_mes_ceros, pronostico_final=1)
+df_forecast_final_xgboost_global = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_xgboost_global, 'xgboost_global')
+
+
+## LightGBM
+meses_atras_fin = 5
+window_size = 5
+porc_eval = 0.35
+df_forecast_lgbm_global_raw = simular_lgbm_global(periodo_max_evaluacion, 
+                           porc_eval, 
+                           meses_atras_fin, 
+                           meses_a_pronosticar_evaluacion,
+                           window_size,                        
+                           df_mes,
+                           barra_progreso,
+                           status_text)
+
+df_forecast_lgbm_global = formato_pronosticos_globales(df_forecast_lgbm_global_raw, df_mes_ceros, pronostico_final=0)
+df_forecast_lgbm_global = crear_columnas_error(df_forecast_lgbm_global)
+df_mejor_lgbm_global = agrupar_por_codigo(df_forecast_lgbm_global)
+
+## Reportes de error lgbm Global
+grupo_mes_error_formato_lgbm_global, df_test_lgbm_global = kpi_error_lag(df_forecast_lgbm_global)
+grupo_sku_error_formato_lgbm_global, rmse_sku_lag_lgbm_global, rmse_sku_mes_lgbm_global = kpi_error_sku(df_forecast_lgbm_global)
+
+## Generar Pronosticos finales con lgbm
+periodo_max_evaluacion = 2
+meses_atras_fin = 1
+window_size = 5
+
+df_forecast_final_lgbm_global = simular_lgbm_global(periodo_max_evaluacion, 
+                           porc_eval, 
+                           meses_atras_fin, 
+                           meses_a_pronosticar_produccion,
+                           window_size,                        
+                           df_mes,barra_progreso,
+                           status_text)
+
+df_forecast_final_lgbm_global = formato_pronosticos_globales(df_forecast_final_lgbm_global, df_mes_ceros, pronostico_final=1)
+df_forecast_final_lgbm_global = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_lgbm_global, 'lgbm_global')
+
+"""
+
+
+## Crear reporte acumulado de errores de todos los modelos
+modelos = ['pms', 'se', 'rl_lineal', 'rl_estacional', 'mstl', 'milagros',
+           #'xgboost_global',
+          #'lgbm_global'
+          ]
+reporte_error_skus = generar_reporte_error_skus(modelos)
+df_todos_rmse = concatenar_rmse(modelos)
+
+## Grafica 6: Distribucion de merjor modelos por sku
+df_minimos, df_final, reporte_error_skus, fig1, df_errores_totales = comparar_y_graficar_modelos(reporte_error_skus, df_mes_ceros)
+fig1.show()
+
+## Concatener todos los pronosticos finales generados
+df_todos_pronosticos = concatenar_forecasts_pronosticos(modelos)
+
+## Crear tabla final con pronosticos a 12 meses
+df_pronosticos_mejor_modelo, df_pronosticos_12_meses = obtener_mejor_pronostico(df_minimos, df_todos_pronosticos, df_errores_totales, df_todos_rmse)
+
+## Grafica final demanda vs mejor pronostico
+fig = crear_grafica_pronostico(df_mes_ceros, df_todos_pronosticos, df_pronosticos_mejor_modelo)
+fig.show()
+
+df_todos_df_test = concatenar_df_test(modelos)
+
+df_resultado_test = filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test)
+sesgo_porc, mae_porc, rmse, score = metricas_error(df_resultado_test, imprimir=1)
+df_lags = evaluar_lags(df_resultado_test)[['MAE%','SESGO%','SCORE%']]
+display(df_lags[['MAE%','SESGO%','SCORE%']])
+
+# Medicion de tiempo de ejeucion
+fin_tiempo = time.time()
+tiempo_ejecucion = round(fin_tiempo - inicio_tiempo, 2)
+tiempo_ejecucion_min = tiempo_ejecucion / 60
+minutos, segundos = divmod(tiempo_ejecucion_min, 1)
+segundos *= 60
+
+print("Tiempo de Ejecución:", "%02d:%02d" % (minutos, segundos))
+
 
 # # Script de prueba parte 2 - Novaventa
 
@@ -5301,7 +5320,7 @@ if seccion == '🛠️ Herramientas de Análisis':
 # In[62]:
 
 
-if seccion == '📦 Pronosticos Novaventa por Campaña':
+if seccion == '📦 Pronosticos Novaventa por Campaña': 
     st.markdown("<h1 style='color:navy;'>Novaventa</h1>", unsafe_allow_html=True)
     tabs = st.tabs(['📂 Cargar datos Novaventa', 
                 '📊 Outliers Novaventa',  

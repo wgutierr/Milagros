@@ -957,7 +957,7 @@ def metricas_error(df, imprimir):
 
 def kpi_error_sku(df):
     
-    if df is None:
+    if df is None or df.empty:
         return None, None, None
         
     # Definicion de fechas de testeo
@@ -1089,7 +1089,7 @@ def evaluar_lags(df):
 
 def kpi_error_lag(df):
     
-    if df is None:
+    if df is None or df.empty:
         return None, None
     # Definicion de fechas de testeo
     if 'CONSECUTIVO' in df.columns:
@@ -3096,8 +3096,14 @@ def simular_lgbm_global(periodo_max_evaluacion,
 # In[47]:
 
 
+# def generar_reporte_error_skus(modelos):
+#     return {modelo: globals()[f'grupo_sku_error_formato_{modelo}'] for modelo in modelos}
+
 def generar_reporte_error_skus(modelos):
-    return {modelo: globals()[f'grupo_sku_error_formato_{modelo}'] for modelo in modelos}
+    return {
+        modelo: df for modelo in modelos 
+        if (df := globals().get(f'grupo_sku_error_formato_{modelo}')) is not None and not df.empty
+    }
 
 def generar_reporte_error_skus_nv(modelos_nv):
     return {modelo_nv: globals()[f'grupo_sku_error_formato_{modelo_nv}_nv'] for modelo_nv in modelos_nv}
@@ -3105,7 +3111,7 @@ def generar_reporte_error_skus_nv(modelos_nv):
 
 # ### Funcion para crear df con mejores modelos
 
-# In[79]:
+# In[48]:
 
 
 # Para pronosticos por meses
@@ -3129,14 +3135,25 @@ def comparar_y_graficar_modelos(reporte_error_skus, df_mes_ceros):
         
     
     # Iterar sobre los modelos para combinarlos en df_final
+    # for nombre_modelo, df in reporte_error_skus.items():
+    #     df_final = df_final.merge(
+    #         #df[['CODIGO', 'MAE%']].rename(columns={'MAE%': nombre_modelo}), 
+    #         df[['CODIGO','SCORE%']].rename(columns={'SCORE%': nombre_modelo}),
+    #         on='CODIGO', 
+    #         how='left'
+    #     )
+    #     df['MODELO'] = nombre_modelo
+
     for nombre_modelo, df in reporte_error_skus.items():
-        df_final = df_final.merge(
-            #df[['CODIGO', 'MAE%']].rename(columns={'MAE%': nombre_modelo}), 
-            df[['CODIGO','SCORE%']].rename(columns={'SCORE%': nombre_modelo}),
-            on='CODIGO', 
-            how='left'
-        )
-        df['MODELO'] = nombre_modelo
+        if df is not None:  # Evitar errores por valores None
+            df_final = df_final.merge(
+                df[['CODIGO','SCORE%']].rename(columns={'SCORE%': nombre_modelo}),
+                on='CODIGO', 
+                how='left'
+            )
+            df['MODELO'] = nombre_modelo
+        else:
+            print(f"Advertencia: El modelo {nombre_modelo} está vacío (None).")
         
     # Remover simbolos de porcentaje y convertir columnas a valores numericos
     modelos_cols = list(reporte_error_skus.keys())
@@ -3903,20 +3920,19 @@ def validar_pronosticos(sku, modelo, df_todos_pronosticos):
 
 
 def concatenar_df_test(modelos):
-    
-    # Obtener los DataFrames dinámicamente usando la lista de modelos
     dfs = []
     for modelo in modelos:
-        df = globals()[f'df_test_{modelo}']
-        # Añadir la columna 'modelo' con el valor del modelo
-        df['modelo'] = modelo
-        dfs.append(df)
-    
-    # Concatenar todos los DataFrames en uno solo
-    df_todos_df_test = pd.concat(dfs)
-    
-    # Asegurar que la columna 'CODIGO' sea de tipo string
-    df_todos_df_test['CODIGO'] = df_todos_df_test['CODIGO'].astype(str)
+        df = globals().get(f'df_test_{modelo}')  # Usar .get() para evitar errores si no existe
+        if df is not None:  # Solo añadir si no es None
+            df = df.copy()  # Evitar SettingWithCopyWarning
+            df['modelo'] = modelo  # Añadir la columna 'modelo'
+            dfs.append(df)
+
+    if not dfs:  # Si la lista está vacía, retornar un DataFrame vacío con las columnas esperadas
+        return pd.DataFrame(columns=['CODIGO', 'modelo'])
+
+    df_todos_df_test = pd.concat(dfs, ignore_index=True)  # Concatenar e ignorar los índices originales
+    df_todos_df_test['CODIGO'] = df_todos_df_test['CODIGO'].astype(str)  # Asegurar que 'CODIGO' sea string
 
     return df_todos_df_test
 
@@ -3928,11 +3944,15 @@ def concatenar_df_test_nv(modelos_nv):
     for modelo_nv in modelos_nv:
         df = globals()[f'df_test_{modelo_nv}']
         # Añadir la columna 'modelo' con el valor del modelo
-        df['modelo'] = modelo_nv
-        dfs_nv.append(df)
-    
+        if df is not None:  # Solo añadir si no es None
+            df = df.copy()  # Evitar SettingWithCopyWarning
+            df['modelo'] = modelo_nv  # Añadir la columna 'modelo'
+            dfs_nv.append(df)
+            
+    if not dfs_nv:  # Si la lista está vacía, retornar un DataFrame vacío con las columnas esperadas
+        return pd.DataFrame(columns=['CODIGO', 'modelo'])
     # Concatenar todos los DataFrames en uno solo
-    df_todos_df_test_nv = pd.concat(dfs_nv)
+    df_todos_df_test_nv = pd.concat(dfs_nv, ignore_index=True)
     
     # Asegurar que la columna 'CODIGO' sea de tipo string
     df_todos_df_test_nv['CODIGO'] = df_todos_df_test_nv['CODIGO'].astype(str)
@@ -3971,7 +3991,8 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 
 # inicio_tiempo = time.time()
 # ## Cargar data
-# ruta_demanda = r'dataset/historico_venta 2022_2024.xlsx'
+# #ruta_demanda = r'dataset/historico_venta 2022_2024.xlsx'
+# ruta_demanda = r"dataset\Histórico venta 2023 - Corte Enero 2025.xlsx"
 # df = cargar_data(ruta_demanda)
 # #df = df.iloc[:,:-1]
 # ## Preprocesar data
@@ -4143,7 +4164,7 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 #                                     status_text)
 # 
 # df_forecast_final_milagros = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_milagros, 'milagros')
-# """
+# #"""
 # ## XGBoost
 # 
 # meses_atras_fin = 5
@@ -4219,7 +4240,7 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 # df_forecast_final_lgbm_global = formato_pronosticos_globales(df_forecast_final_lgbm_global, df_mes_ceros, pronostico_final=1)
 # df_forecast_final_lgbm_global = adicionar_nombre_modelo_serie_tiempo(df_forecast_final_lgbm_global, 'lgbm_global')
 # 
-# """
+# #"""
 # 
 # 
 # ## Crear reporte acumulado de errores de todos los modelos
@@ -4406,7 +4427,7 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 
 # ## Seccion 1
 
-# In[58]:
+# In[ ]:
 
 
 # Configurar el layout de Streamlit
@@ -4529,228 +4550,6 @@ if seccion == '📂 Carga de datos':
             graficar_demanda_codigo(df_mes_orig)
 
 
-# # Configurar el layout de Streamlit
-# st.set_page_config(layout="wide")
-# 
-# # Título de la aplicación
-# st.title("Pronósticos de Series de Tiempo MILAGROS")
-# 
-# # Barra lateral
-# st.sidebar.title('Flujo de Datos')
-# 
-# # Secciones
-# seccion = st.sidebar.radio('⬇️ Ir a:', ('📂 Carga de datos',
-#                                         '📊 Demanda a pronosticar y outliers',
-#                                         '🔮 Evaluar y Generar Pronosticos', 
-#                                         '🛠️ Herramientas de Análisis',
-#                                         '📦 Pronosticos Novaventa por Campaña')
-#                           )
-# 
-# # Variables globales
-# session_vars = ['df','df_vertical','df_mes_cliente','df_mes_orig', 'df_mes_ceros', 'df_mes', 'df_outliers',                            
-#                 'sup', 'inf', 'n',
-#                 'meses_a_pronosticar_evaluacion', 'meses_a_pronosticar_produccion', 'periodo_max_evaluacion',
-#                 'porc_eval', 'porc_eval_pronost','df_todos_pronosticos',                 
-#                 'codigo_seleccionado', 'modelo_seleccionado', 'mostrar_grafica_cliente', 
-#                 'mostrar_grafica_codigo', 'df_pronosticos_12_meses', 'reporte_outliers', 'fig',
-#                 'sesgo_porc_formato', 'mae_porc_formato', 'score_formato',               
-#                 'df_periodo','mostrar_grafica_outliers','df_pronosticos_12_meses_nv','df_nv','df_ceros', 'df_orig_nv', 'df_vertical_nv', 'df_resultado_nv', 'mostrar_grafica', 'sup_nv', 'inf_nv', 'n_nv', 'reporte_outliers_nv',
-#                 'fig_nv','df_todos_pronosticos_nv', 'meses_a_pronosticar_evaluacion_nv', 'meses_a_pronosticar_produccion_nv', 'periodo_max_evaluacion_nv', 'porc_eval_nv','porc_eval_pronost_nv','pronosticos_generados_nv',
-#                 'codigo_seleccionado_nv','modelo_seleccionado_nv', 'df_outliers_nv', 'excel_data_nv', 'clientes_seleccionados'
-#                ]
-# 
-# # Inicializar session_state si no existe
-# for var in session_vars:
-#     if var not in st.session_state:
-#         st.session_state[var] = None
-# 
-# # Sección: Carga de Datos
-# if seccion == '📂 Carga de datos':
-#     # Resetear estados de gráficas para evitar mostrar gráficas automáticamente
-#     st.session_state.mostrar_grafica_cliente = False
-#     st.session_state.mostrar_grafica_codigo = False
-# 
-#     st.header("Cargar Datos")
-# 
-#     # Comprobar si los datos ya están cargados y preprocesados
-#     if "df" in st.session_state and "df_mes_cliente" in st.session_state and "clientes_seleccionados" in st.session_state and st.session_state.df_mes_cliente is not None and st.session_state.df is not None and st.session_state.clientes_seleccionados is not None:
-#         st.success('Datos ya cargados previamente')
-#         st.write("Datos cargados:")
-#         st.write(st.session_state.df.head())
-#         st.text("Clientes seleccionados:")
-#         st.write(st.session_state.clientes_seleccionados)
-#         
-#         st.write("Datos preprocesados:")
-#         st.write(st.session_state.df_mes_cliente.head())
-#         if st.button('Cargar Nuevos Datos'):
-#             # Resetear la session state para permitir cargue de nuevos datos
-#             for var in session_vars:
-#                 st.session_state[var] = None
-#             st.experimental_rerun()  # Recargar el script
-#     else:
-#         # Subida de datos
-#         ruta_demanda = st.file_uploader("Sube el archivo de demanda en formato Excel", type=['xlsx'])
-#         if ruta_demanda is not None:
-#             # Cargar y procesar datos
-#             df = cargar_data(ruta_demanda)
-#             st.write("Datos cargados:")
-#             st.write(df.head())
-#             st.session_state.df = df
-#             st.success("Archivo histórico cargado correctamente.")
-# 
-#             # Procesar datos
-#             df_vertical = convertir_a_df_vertical(df)
-#             df_vertical_fecha = convertir_texto_a_fecha(df_vertical, meses)
-#             df_resultado = eliminar_ceros_iniciales(df_vertical_fecha)
-#             df_mes_cliente_sin_filtro = preprocesar_tabla_2(df_resultado)
-# 
-#             clientes = df_mes_cliente_sin_filtro['CLIENTE'].unique()
-#             
-#             # Selección de clientes a procesar
-#             
-#             clientes_seleccionados = st.multiselect(
-#                 "Seleccione los clientes a trabajar:",
-#                 options=clientes,
-#                 default=clientes  # Seleccionados por defecto
-#             )
-#             
-#             st.session_state.clientes_seleccionados = clientes_seleccionados
-#             if "clientes_seleccionados" in st.session_state and st.session_state.clientes_seleccionados is not None:
-#                 df_mes_cliente = df_mes_cliente_sin_filtro[df_mes_cliente_sin_filtro['CLIENTE'].isin(st.session_state.clientes_seleccionados)]
-#                 st.session_state.df_mes_cliente = df_mes_cliente
-#                 st.write(df_mes_cliente.sample(5))
-#                 st.success("Clientes seleccionados:")
-#                 st.text(clientes_seleccionados)
-#                 # Opciones de gráficas
-#         if "df_mes_cliente" in st.session_state and "clientes_seleccionados" in st.session_state and st.session_state.df_mes_cliente is not None and st.session_state.clientes_seleccionados is not None :
-#             st.header("Ver Gráficas de Demanda")
-#             col1, col2 = st.columns(2)
-#             with col1:
-#                 if st.button("Graficar Demanda por Código - Cliente"):
-#                     st.session_state.mostrar_grafica_cliente = True
-#                     st.session_state.mostrar_grafica_codigo = False
-#             with col2:
-#                 if st.button("Graficar Demanda por Código Agregado"):
-#                     st.session_state.mostrar_grafica_cliente = False
-#                     st.session_state.mostrar_grafica_codigo = True
-#     
-#             # Mostrar las gráficas según la selección
-#             if st.session_state.mostrar_grafica_cliente:
-#                 graficar_demanda_codigo_cliente(st.session_state.df_mes_cliente)
-#             elif st.session_state.mostrar_grafica_codigo:
-#                 if st.session_state.df_mes_cliente is not None:
-#                     df_mes_orig, reporte_codigos = agrupar_demanda(st.session_state.df_mes_cliente)
-#                     st.session_state.df_mes_orig = df_mes_orig
-#                     graficar_demanda_codigo(df_mes_orig)
-
-# # Configurar el layout de Streamlit
-# st.set_page_config(layout="wide")
-# 
-# # Título de la aplicación
-# st.title("Pronósticos de Series de Tiempo MILAGROS")
-# 
-# # Barra lateral
-# st.sidebar.title('Flujo de Datos')
-# 
-# # Secciones
-# seccion = st.sidebar.radio('⬇️ Ir a:', ('📂 Carga de datos',
-#                                         '📊 Demanda a pronosticar y outliers',
-#                                         '🔮 Evaluar y Generar Pronosticos', 
-#                                         '🛠️ Herramientas de Análisis',
-#                                         '📦 Pronosticos Novaventa por Campaña')
-#                           )
-# 
-# # Variables globales
-# session_vars = ['df','df_vertical','df_mes_cliente','df_mes_orig', 'df_mes_ceros', 'df_mes', 'df_outliers',                            
-#                 'sup', 'inf', 'n',
-#                 'meses_a_pronosticar_evaluacion', 'meses_a_pronosticar_produccion', 'periodo_max_evaluacion',
-#                 'porc_eval', 'porc_eval_pronost','df_todos_pronosticos',                 
-#                 'codigo_seleccionado', 'modelo_seleccionado', 'mostrar_grafica_cliente', 
-#                 'mostrar_grafica_codigo', 'df_pronosticos_12_meses', 'reporte_outliers', 'fig',
-#                 'sesgo_porc_formato', 'mae_porc_formato', 'score_formato',               
-#                 'df_periodo','mostrar_grafica_outliers','df_pronosticos_12_meses_nv','df_nv','df_ceros', 'df_orig_nv', 'df_vertical_nv', 'df_resultado_nv', 'mostrar_grafica', 'sup_nv', 'inf_nv', 'n_nv', 'reporte_outliers_nv',
-#                 'fig_nv','df_todos_pronosticos_nv', 'meses_a_pronosticar_evaluacion_nv', 'meses_a_pronosticar_produccion_nv', 'periodo_max_evaluacion_nv', 'porc_eval_nv','porc_eval_pronost_nv','pronosticos_generados_nv',
-#                 'codigo_seleccionado_nv','modelo_seleccionado_nv', 'df_outliers_nv', 'excel_data_nv'
-#                ]
-# 
-# # Inicializar session_state si no existe
-# for var in session_vars:
-#     if var not in st.session_state:
-#         st.session_state[var] = None
-# 
-# # Sección: Carga de Datos
-# if seccion == '📂 Carga de datos':
-#     # Resetear estados de gráficas para evitar mostrar gráficas automáticamente
-#     st.session_state.mostrar_grafica_cliente = False
-#     st.session_state.mostrar_grafica_codigo = False
-# 
-#     st.header("Cargar Datos")
-# 
-#     # Comprobar si los datos ya están cargados
-#     if "df" in st.session_state and st.session_state.df is not None:
-#         st.success('Datos ya cargados previamente')
-#         st.write("Datos cargados:")
-#         st.write(st.session_state.df.head())
-#         st.write("Datos preprocesados:")
-#         st.write(st.session_state.df_mes_cliente.head())
-#         if st.button('Cargar Nuevos Datos'):
-#             # Resetear la session state para permitir cargue de nuevos datos
-#             for var in session_vars:
-#                 st.session_state[var] = None
-#             st.experimental_rerun()  # Recargar el script
-#     else:
-#         # Subida de datos
-#         ruta_demanda = st.file_uploader("Sube el archivo de demanda en formato Excel", type=['xlsx'])
-#         if ruta_demanda is not None:
-#             # Cargar y procesar datos
-#             df = cargar_data(ruta_demanda)
-#             st.write("Datos cargados:")
-#             st.write(df.head())
-#             st.session_state.df = df
-#             st.success("Archivo histórico cargado correctamente.")
-# 
-#             # Procesar datos
-#             df_vertical = convertir_a_df_vertical(df)
-#             df_vertical_fecha = convertir_texto_a_fecha(df_vertical, meses)
-#             df_resultado = eliminar_ceros_iniciales(df_vertical_fecha)
-#             df_mes_cliente_sin_filtro = preprocesar_tabla_2(df_resultado)
-# 
-#             clientes = df_mes_cliente_sin_filtro['CLIENTE'].unique()
-#             
-#             # Selección de clientes a procesar
-#             
-#             clientes_seleccionados = st.multiselect(
-#                 "Seleccione los clientes a trabajar:",
-#                 options=clientes,
-#                 default=clientes  # Seleccionados por defecto
-#             )
-#             df_mes_cliente = df_mes_cliente_sin_filtro[df_mes_cliente_sin_filtro['CLIENTE'].isin(clientes_seleccionados)]
-#             st.session_state.df_mes_cliente = df_mes_cliente
-#             #st.write(df_mes_cliente.head())
-#             st.success("Clientes seleccionados:")
-#             st.text(clientes_seleccionados)
-#     # Opciones de gráficas
-#     if "df_mes_cliente" in st.session_state and st.session_state.df_mes_cliente is not None:
-#         st.header("Ver Gráficas de Demanda")
-#         col1, col2 = st.columns(2)
-#         with col1:
-#             if st.button("Graficar Demanda por Código - Cliente"):
-#                 st.session_state.mostrar_grafica_cliente = True
-#                 st.session_state.mostrar_grafica_codigo = False
-#         with col2:
-#             if st.button("Graficar Demanda por Código Agregado"):
-#                 st.session_state.mostrar_grafica_cliente = False
-#                 st.session_state.mostrar_grafica_codigo = True
-# 
-#         # Mostrar las gráficas según la selección
-#         if st.session_state.mostrar_grafica_cliente:
-#             graficar_demanda_codigo_cliente(st.session_state.df_mes_cliente)
-#         elif st.session_state.mostrar_grafica_codigo:
-#             if st.session_state.df_mes_cliente is not None:
-#                 df_mes_orig, reporte_codigos = agrupar_demanda(st.session_state.df_mes_cliente)
-#                 st.session_state.df_mes_orig = df_mes_orig
-#                 graficar_demanda_codigo(df_mes_orig)
-
 # ## Seccion 2
 
 # In[59]:
@@ -4790,10 +4589,11 @@ if seccion == '📊 Demanda a pronosticar y outliers':
     # Parámetros de configuración
     if "df_mes_orig" in st.session_state and "df_mes_ceros" in st.session_state:
         st.header("Manejo de Outliers")
+        st.write("Si no desea imputar los outliers, seleccione [1] en Limite Superior y [0] en Limite Inferior")
         sup = st.number_input("Límite Superior", min_value=0.0, max_value=1.0, value=0.98, step=0.01)
         inf = st.number_input("Límite Inferior", min_value=0.0, max_value=1.0, value=0.02, step=0.01)
         n = st.number_input("Número de Periodos para Pronóstico Ingenuo", min_value=1, max_value=12, value=6, step=1)
-        
+        st.write("Un valor pequeño puede ser menos sensible a los outliers, un valor alto (6 o más) puede aumentar la sensiblidad")
         df_mes, df_outliers, reporte_outliers = eliminar_outliers(st.session_state.df_mes_ceros, sup, inf, n)
         st.session_state.df_mes = df_mes
         st.session_state.df_outliers = df_outliers

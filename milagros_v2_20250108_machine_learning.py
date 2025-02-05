@@ -80,12 +80,14 @@ import io
 
 # # Cargar Datos Historicos
 
-# In[2]:
+# In[68]:
 
 
 # Función de carga pronosticos por mes
 def cargar_data(ruta):
     df = pd.read_excel(ruta)
+    if 'CÓDIGO' in df.columns or 'DESCRIPCIÓN' in df.columns:
+        df = df.rename(columns={'CÓDIGO': 'CODIGO', 'DESCRIPCIÓN': 'DESCRIPCION'})
     return df
 
 # Función de carga y listado de hojas
@@ -4427,7 +4429,7 @@ def filtrar_y_concatenatar_df_test(df_minimos, df_todos_df_test):
 
 # ## Seccion 1
 
-# In[ ]:
+# In[58]:
 
 
 # Configurar el layout de Streamlit
